@@ -1,0 +1,63 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    box/.style={draw=gray!40, fill=cyan!3, rounded corners=6pt, inner sep=6pt, align=center, minimum height=0.9cm, minimum width=3cm},
+    serverbox/.style={draw=gray!40, fill=blue!3, rounded corners=6pt, inner sep=6pt, align=center, minimum height=0.9cm, minimum width=3cm},
+    region/.style={draw=gray!30, dashed, rounded corners=12pt, inner sep=10pt, fill=gray!2},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt},
+    lbl/.style={fill=white, inner sep=3pt, text=gray!80!black, font=\footnotesize}
+]
+
+% SENDER
+\node[box] (s_enc) at (0,0) {Mã hóa dữ liệu\\(AES-256-GCM)};
+\node[box] (s_gen) at (0,1.8) {Tạo khóa ngẫu nhiên};
+\node[box] (s_url) at (0,-1.8) {Tạo Liên kết (URL)};
+
+\draw[arrow] (s_gen) -- (s_enc) node[midway, right, font=\footnotesize, text=gray!80!black] {Khóa};
+\draw[arrow] (s_enc) -- (s_url) node[midway, right, font=\footnotesize, text=gray!80!black] {Bản mã + ID};
+
+% Khóa -> Fragment
+\draw[arrow, out=180, in=180, looseness=1.2] (s_gen.west) to node[midway, left, font=\footnotesize, text=gray!80!black, align=right] {Nhúng vào\\Fragment (\#)} (s_url.west);
+
+% SERVER
+\node[serverbox] (srv) at (5.5, 0) {Lưu trữ bản mã\\(Redis)};
+\node[align=center, font=\footnotesize\color{gray!70!black}] (srv_zk) at (5.5, -1.3) {Cơ chế Zero-Knowledge\\(Không lưu khóa)};
+
+% RECEIVER
+\node[box] (r_req) at (11, 0) {Yêu cầu Bản mã\\(Bằng ID)};
+\node[box] (r_url) at (11, -1.8) {Mở Liên kết (URL)};
+\node[box] (r_dec) at (11, 1.8) {Giải mã cục bộ};
+
+\draw[arrow] (r_url) -- (r_req) node[midway, right, font=\footnotesize, text=gray!80!black] {Gửi ID};
+\draw[arrow] (r_req) -- (r_dec) node[midway, right, font=\footnotesize, text=gray!80!black] {Bản mã};
+
+% Trích xuất khóa -> Giải mã
+\draw[arrow, out=0, in=0, looseness=1.2] (r_url.east) to node[midway, right, font=\footnotesize, text=gray!80!black, align=left] {Trích xuất\\Khóa (\#)} (r_dec.east);
+
+% Draw Regions using fit
+\begin{scope}[on background layer]
+    \coordinate (s_left) at (-2.3, 0);
+    \coordinate (r_right) at (13.3, 0);
+    \coordinate (srv_top) at (5.5, 0.8);
+    \coordinate (srv_bottom) at (5.5, -1.8);
+    
+    \node[region, fit=(s_gen) (s_url) (s_enc) (s_left)] (reg_sender) {};
+    \node[anchor=south, font=\bfseries\color{gray!80!black}] at (reg_sender.north) {Người Gửi (Trình Duyệt)};
+
+    \node[region, fill=blue!2, fit=(srv) (srv_zk) (srv_top) (srv_bottom)] (reg_server) {};
+    \node[anchor=south, font=\bfseries\color{gray!80!black}] at (reg_server.north) {Máy Chủ (Backend)};
+
+    \node[region, fit=(r_req) (r_url) (r_dec) (r_right)] (reg_receiver) {};
+    \node[anchor=south, font=\bfseries\color{gray!80!black}] at (reg_receiver.north) {Người Nhận (Trình Duyệt)};
+\end{scope}
+
+% Interactions Sender -> Server
+\draw[arrow, out=20, in=160] (s_enc.east) to node[lbl] {Gửi Bản mã} (srv.west);
+
+% Interactions Server -> Receiver
+\draw[arrow, out=20, in=160] (srv.east) to node[lbl] {Trả Bản mã} (r_req.west);
+
+% Interactions Sender -> Receiver (URL Sharing)
+\draw[arrow, dashed] (s_url.south) .. controls +(0,-1.5) and +(0,-1.5) .. (r_url.south) node[midway, lbl, fill=white] {Chia sẻ URL an toàn qua kênh ngoài (chứa Khóa ở Fragment)};
+
+\end{tikzpicture}

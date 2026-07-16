@@ -1,0 +1,77 @@
+# ==========================================
+# LaTeX build and temporary files
+# ==========================================
+*.aux
+*.bbl
+*.blg
+*.bcf
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.lof
+*.lot
+*.xdv
+*.nav
+*.snm
+*.vrb
+*.spl
+*.idx
+*.ind
+*.ilg
+*.cb
+*.cb2
+
+# Nếu bạn không muốn đưa file PDF lên GitHub, hãy bỏ comment dòng dưới đây
+*.pdf
+
+# ==========================================
+# Python files (cho các file như make_template.py)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ==========================================
+# OS generated files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Editor / IDE settings
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
