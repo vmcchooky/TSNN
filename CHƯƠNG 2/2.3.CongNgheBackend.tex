@@ -1,2 +1,16 @@
-﻿\section{Công nghệ Backend}
+\section{Công nghệ Backend}
 
+Kiến trúc tầng xử lý dữ liệu (backend) của hệ thống đóng vai trò quyết định trong việc đáp ứng yêu cầu phân giải tên miền với độ trễ tối thiểu và độ tin cậy cao. Việc lựa chọn công nghệ được cân nhắc kỹ lưỡng dựa trên các tiêu chí về hiệu năng, khả năng xử lý đồng thời (concurrency) và tính tinh gọn khi đóng gói triển khai.
+
+\subsection{Ngôn ngữ lập trình Go}
+Ngôn ngữ Go (Golang) được sử dụng làm nền tảng cốt lõi để phát triển các module nội bộ, bao gồm máy chủ phân giải DNS (`dns-resolver`) và dịch vụ API trung tâm (`core-api`). Được thiết kế với cơ chế cấp phát bộ nhớ tối ưu và bộ dọn rác (garbage collector) hiệu quả, Go giảm thiểu đáng kể các rào cản về độ trễ thường gặp ở các ngôn ngữ thông dịch. Khả năng xử lý đồng thời thông qua mô hình goroutines và channels cho phép hệ thống tiếp nhận và phân tích hàng nghìn truy vấn DNS mỗi giây. Quá trình biên dịch tĩnh (statically typed) mã nguồn thành một tệp thực thi độc lập (single binary) giúp hệ thống loại bỏ các tệp phụ thuộc bên ngoài, tối ưu hóa quá trình đóng gói và vận hành qua Docker.
+
+\subsection{Lưu trữ dữ liệu: SQLite và Redis}
+Hệ thống áp dụng mô hình lưu trữ hỗn hợp nhằm khai thác ưu điểm của từng động cơ cơ sở dữ liệu đối với các loại dữ liệu đặc thù. 
+
+SQLite được sử dụng để lưu trữ các thông tin mang tính bền vững như cấu hình hệ thống, bộ nhớ đệm WHOIS, danh sách miền tin cậy (whitelist), và các bản ghi đo lường hoạt động (telemetry). Dưới dạng một cơ sở dữ liệu nhúng (embedded database) không yêu cầu máy chủ nền tảng (serverless), SQLite loại bỏ hoàn toàn độ trễ giao tiếp mạng (network latency) giữa ứng dụng và cơ sở dữ liệu, đảm bảo tốc độ đọc ghi cục bộ đạt mức tối đa.
+
+Bổ trợ cho SQLite là hệ thống Redis, được tích hợp nhằm vận hành bộ nhớ đệm tốc độ cao (in-memory cache) trên cơ sở bộ nhớ RAM. Redis đóng vai trò thiết yếu trong việc quản lý và tra cứu tập dữ liệu tình báo mối đe dọa (threat feed), nơi yêu cầu các thao tác kiểm tra phần tử (như lệnh \texttt{SISMEMBER}) phải được thực thi với độ phức tạp thời gian O(1). Cơ chế này đảm bảo mọi truy vấn tên miền đều được đối chiếu với cơ sở dữ liệu độc hại gần như tức thời trước khi kích hoạt quy trình phân tích ngữ vựng.
+
+\subsection{Máy chủ proxy và bảo mật Caddy}
+Caddy Server được triển khai dưới vai trò máy chủ proxy ngược (reverse proxy) để quản lý luồng giao tiếp mạng bên ngoài. Nhiệm vụ của phần mềm này là điều hướng lưu lượng truy cập HTTPS vào các điểm cuối (endpoints) tương ứng của hệ thống, bao gồm API và giao diện quản trị tĩnh (SPA). Lợi thế kỹ thuật cốt lõi của Caddy nằm ở khả năng tự động cấp phát, gia hạn và quản lý chứng chỉ bảo mật TLS thông qua giao thức ACME mà không đòi hỏi can thiệp thủ công. Việc ủy quyền lớp mã hóa truyền tải cho Caddy giúp phân tách rõ ràng trách nhiệm bảo mật mạng và logic nghiệp vụ, đồng thời giảm thiểu áp lực xử lý cho các module viết bằng Go ở phía sau.

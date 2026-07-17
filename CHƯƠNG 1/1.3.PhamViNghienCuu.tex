@@ -1,2 +1,11 @@
-﻿\section{Phạm vi nghiên cứu}
+\section{Phạm vi nghiên cứu}
 
+Để đảm bảo tính khả thi và định hướng đúng vào mục tiêu bảo vệ ở cấp độ mạng, phạm vi của đề tài được giới hạn trên ba khía cạnh chính bao gồm chức năng, dữ liệu và mô hình triển khai:
+
+\begin{itemize}
+    \item \textbf{Về mặt chức năng (Functional Scope):} Đề tài giới hạn ở việc phát hiện và ngăn chặn các tên miền phục vụ tấn công giả mạo (phishing) tại tầng phân giải tên miền (DNS). Cơ chế phân tích bao gồm đối chiếu tình báo mối đe dọa (threat intelligence), chấm điểm ngữ vựng (lexical scoring) và kiểm chứng bổ sung bằng AI (Gemini 2.5 Flash Lite). Hệ thống không thực hiện phân tích sâu gói tin (Deep Packet Inspection) và không can thiệp vào tải trọng (payload) của các giao thức lớp ứng dụng như HTTP/HTTPS.
+    
+    \item \textbf{Về mặt nguồn dữ liệu (Data Scope):} Nguồn cấp dữ liệu rủi ro tập trung vào các danh sách tình báo (threat feeds) liên quan trực tiếp đến hoạt động lừa đảo, được tinh chỉnh để cung cấp lớp bảo vệ phù hợp với người dùng tại Việt Nam. Nghiên cứu chủ động loại trừ các danh sách chặn quảng cáo hoặc máy chủ theo dõi hành vi (ad/tracker hosts) nhằm hạn chế tỷ lệ nhận diện sai (false positive), do thiết kế cốt lõi của hệ thống xử lý mọi kết quả khớp dưới dạng tên miền độc hại.
+    
+    \item \textbf{Về mặt kiến trúc và triển khai (Deployment Scope):} Dự án hướng đến việc đóng gói một giải pháp an ninh mạng tự lưu trữ (self-hosted) có khả năng tối ưu hóa tài nguyên phần cứng. Phiên bản hiện tại được thiết kế để vận hành ổn định trên một máy chủ ảo (VPS) cơ bản với mức chi phí thấp. Do đó, các mô hình phân tán đa cụm sẵn sàng cao (High Availability multi-node) đòi hỏi ngân sách hạ tầng lớn sẽ không nằm trong phạm vi đánh giá trọng tâm của nghiên cứu.
+\end{itemize}

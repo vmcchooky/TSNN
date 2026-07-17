@@ -1,0 +1,35 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    client/.style={draw=gray!40, fill=cyan!3, rounded corners=6pt, inner sep=8pt, align=center, minimum height=1.2cm},
+    resolver/.style={draw=gray!40, fill=blue!3, rounded corners=6pt, inner sep=8pt, align=center, minimum height=6.5cm, minimum width=2.8cm},
+    server/.style={draw=gray!40, fill=gray!3, rounded corners=6pt, inner sep=8pt, align=center, minimum height=1.2cm, minimum width=3.8cm},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt},
+    lbl/.style={text=gray!80!black, font=\footnotesize}
+]
+
+% Nodes
+\node[client] (client) at (0, 0) {Người dùng\\(Trình duyệt)};
+\node[resolver] (resolver) at (6.2, 0) {Máy chủ phân giải\\đệ quy\\(Recursive Resolver)};
+
+\node[server] (root) at (13, 2.6) {Máy chủ Gốc\\(Root Server)};
+\node[server] (tld) at (13, 0) {Máy chủ TLD\\(TLD Server)};
+\node[server] (auth) at (13, -2.6) {Máy chủ Thẩm quyền\\(Authoritative Server)};
+
+% Client <-> Resolver
+\draw[arrow] ([yshift=12pt]client.east) -- ([yshift=12pt]resolver.west) node[midway, above=2pt, lbl] {1. Truy vấn tên miền};
+\draw[arrow, <-] ([yshift=-12pt]client.east) -- ([yshift=-12pt]resolver.west) node[midway, below=2pt, lbl] {8. Trả về địa chỉ IP};
+
+% Resolver <-> Root
+\draw[arrow] ([yshift=12pt]resolver.east |- root.west) -- ([yshift=12pt]root.west) node[midway, above=2pt, lbl] {2. Truy vấn Root};
+\draw[arrow, <-] ([yshift=-12pt]resolver.east |- root.west) -- ([yshift=-12pt]root.west) node[midway, below=2pt, lbl] {3. Trả về IP của TLD};
+
+% Resolver <-> TLD
+\draw[arrow] ([yshift=12pt]resolver.east |- tld.west) -- ([yshift=12pt]tld.west) node[midway, above=2pt, lbl] {4. Truy vấn TLD};
+\draw[arrow, <-] ([yshift=-12pt]resolver.east |- tld.west) -- ([yshift=-12pt]tld.west) node[midway, below=2pt, lbl] {5. Trả về IP của Auth};
+
+% Resolver <-> Auth
+\draw[arrow] ([yshift=12pt]resolver.east |- auth.west) -- ([yshift=12pt]auth.west) node[midway, above=2pt, lbl] {6. Truy vấn tên miền};
+\draw[arrow, <-] ([yshift=-12pt]resolver.east |- auth.west) -- ([yshift=-12pt]auth.west) node[midway, below=2pt, lbl] {7. Trả về IP đích};
+
+\end{tikzpicture}

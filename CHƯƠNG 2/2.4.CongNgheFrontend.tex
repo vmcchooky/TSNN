@@ -1,2 +1,14 @@
-﻿\section{Công nghệ Frontend}
+\section{Công nghệ Frontend}
 
+Giao diện quản trị (Operator UI) của dự án được thiết kế hướng tới mục tiêu trực quan hóa dữ liệu đo lường mạng (telemetry) và cung cấp khả năng cấu hình hệ thống tại thời gian thực. Để đáp ứng khối lượng thông tin lớn và đòi hỏi tốc độ phản hồi tức thì, kiến trúc phía máy khách (frontend) sử dụng bộ khung ứng dụng trang đơn (Single Page Application) kết hợp với các thư viện thành phần hiện đại.
+
+\subsection{Kiến trúc Ứng dụng trang đơn (React SPA) và Tích hợp nhúng}
+Giao diện người dùng được xây dựng trên nền tảng thư viện React dưới dạng Single Page Application (SPA). Cơ chế này cho phép trình duyệt tải toàn bộ mã định tuyến và cấu trúc giao diện ngay trong lần truy cập đầu tiên. Trong các phiên tương tác tiếp theo, dữ liệu được lấy và cập nhật bất đồng bộ thông qua các lệnh gọi API tới máy chủ trung tâm (`core-api`), loại bỏ tình trạng tải lại trang toàn phần (full page reload) và mang lại trải nghiệm điều hướng liền mạch. 
+
+Điểm đặc thù trong quy trình triển khai của dự án là khối mã nguồn frontend sau khi được biên dịch (production build) sẽ được nhúng trực tiếp vào tệp thực thi của ngôn ngữ Go thông qua thư viện `embed`. Phương pháp tiếp cận này giúp loại bỏ nhu cầu thiết lập một máy chủ web độc lập (như Nginx hay Node.js) dành riêng cho frontend, đồng thời đồng bộ hóa hoàn toàn luồng phân phối phần mềm của cả hai phân hệ vào một khối duy nhất.
+
+\subsection{Hệ thống thành phần giao diện với Tailwind CSS và Radix UI}
+Để duy trì tính nhất quán thị giác và tối ưu phát triển, dự án áp dụng kiến trúc giao diện theo hướng Shadcn UI, kết hợp Tailwind CSS và các cấu trúc nguyên thủy từ Radix UI. Phương pháp này cung cấp các khối giao diện không định kiểu sẵn nhưng tuân thủ nghiêm ngặt tiêu chuẩn tiếp cận (accessibility) của W3C. Mô hình này cho phép tùy biến linh hoạt các phân hệ cốt lõi như danh sách ngoại lệ (Overrides), nhật ký rủi ro (Reports) và thông số kỹ thuật (System) mà không phụ thuộc vào các thư viện đóng gói nguyên khối. Sự kết hợp này giúp hệ thống tiêu chuẩn hóa hiển thị, duy trì độ phản hồi cao và giảm thiểu đáng kể mã nguồn CSS tĩnh phải duy trì thủ công.
+
+\subsection{Trực quan hóa dữ liệu với Recharts}
+Nhiệm vụ trọng tâm của giao diện quản trị là biểu diễn đồ họa các xu hướng phân giải tên miền và phân bố điểm số rủi ro. Yêu cầu này được giải quyết thông qua thư viện Recharts, một giải pháp kết xuất biểu đồ thiết kế riêng cho hệ sinh thái React. Recharts được ứng dụng để khởi tạo các biểu đồ đường (line charts) nhằm theo dõi lưu lượng truy vấn theo thời gian và các biểu đồ phân bổ (breakdown charts) phân loại tỷ trọng rủi ro theo ba ngưỡng: an toàn (SAFE), đáng ngờ (SUSPICIOUS) và độc hại (MALICIOUS). Việc chuyển hóa các tham số phân tích thành biểu đồ động giúp quản trị viên hệ thống nhanh chóng nhận dạng các mẫu hình lưu lượng bất thường (anomalies) hoặc các chiến dịch phát tán mã độc quy mô lớn.

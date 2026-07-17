@@ -1,2 +1,23 @@
-﻿\section{Hệ thống phân giải tên miền}
+\section{Hệ thống phân giải tên miền}
 
+\subsection{Tổng quan về quá trình phân giải tên miền (DNS)}
+Hệ thống phân giải tên miền (Domain Name System - DNS) là thành phần hạ tầng thiết yếu của mạng Internet, làm nhiệm vụ biên dịch các tên miền mà con người có thể đọc hiểu (ví dụ: \texttt{example.com}) thành địa chỉ IP máy tính sử dụng để định tuyến lưu lượng (ví dụ: \texttt{192.0.2.1}). Quá trình phân giải bắt đầu khi một ứng dụng khách gửi yêu cầu truy vấn đến máy chủ phân giải đệ quy (recursive resolver). Nếu không tìm thấy kết quả trong bộ nhớ đệm, máy chủ này sẽ lần lượt truy vấn các máy chủ gốc (root servers), máy chủ tên miền cấp cao nhất (TLD servers) và máy chủ có thẩm quyền (authoritative servers) để lấy địa chỉ IP đích. Việc phụ thuộc vào DNS trong hầu hết các giao dịch mạng thiết lập tầng này thành một điểm kiểm soát lý tưởng để theo dõi, phân tích và ngăn chặn các kết nối độc hại từ giai đoạn rất sớm.
+
+\begin{figure}[htp]
+    \centering
+    \input{img/dns_traditional.tex}
+    \caption{Sơ đồ quy trình phân giải tên miền truyền thống}
+    \label{fig:dns_traditional}
+\end{figure}
+
+
+\subsection{Cơ chế hố DNS (DNS Sinkhole)}
+Hố DNS (DNS Sinkhole) là một kỹ thuật bảo mật hoạt động dựa trên nguyên lý chủ động cung cấp thông tin phân giải sai lệch đối với các tên miền được xác định là có rủi ro cao. Thay vì trả về địa chỉ IP thực tế của trang web lừa đảo, máy chủ DNS được cấu hình dưới dạng sinkhole sẽ trả về một địa chỉ IP không thể định tuyến (như \texttt{0.0.0.0}) hoặc địa chỉ IP của một máy chủ cảnh báo nội bộ (block page). Phương pháp này sở hữu ưu điểm vượt trội về hiệu năng do không cần trực tiếp phân tích nội dung gói tin của tầng ứng dụng. Kỹ thuật DNS sinkhole giúp quản trị viên vô hiệu hóa khả năng truy cập vào các chiến dịch tấn công giả mạo (phishing) trên quy mô lớn, đồng thời tối ưu hóa tài nguyên phần cứng để đáp ứng lưu lượng mạng cường độ cao.
+
+\subsection{Các giao thức DNS bảo mật: DoH và DoT}
+Giao thức DNS truyền thống hoạt động dựa trên UDP hoặc TCP qua cổng 53, truyền tải dữ liệu dưới dạng bản rõ (plaintext). Kiến trúc này tiềm ẩn rủi ro bị đánh chặn, theo dõi, hoặc giả mạo gói tin (DNS spoofing) thông qua các cuộc tấn công xen giữa (Man-in-the-Middle). Để khắc phục lỗ hổng này, các tiêu chuẩn mã hóa đường truyền DNS đã được ban hành và ứng dụng rộng rãi:
+\begin{itemize}
+    \item \textbf{DNS over TLS (DoT - RFC 7858):} Mã hóa trực tiếp các bản tin DNS thông qua giao thức TLS qua cổng 853 riêng biệt. DoT cung cấp mức độ bảo mật truyền tải cao, chống nghe lén hiệu quả ở tầng mạng nhưng có thể dễ dàng bị nhận diện và ngăn chặn bởi các hệ thống tường lửa dựa trên cổng giao tiếp.
+    \item \textbf{DNS over HTTPS (DoH - RFC 8484):} Đóng gói các truy vấn DNS bên trong luồng dữ liệu HTTP/2 bảo mật qua cổng 443 thông dụng. Cơ chế này hòa trộn lưu lượng DNS vào lưu lượng duyệt web thông thường, gia tăng khả năng vượt qua các quy tắc lọc gói tin tĩnh và bảo vệ tối đa tính riêng tư của truy vấn.
+\end{itemize}
+Việc tích hợp các giao thức mã hóa này vào hệ thống phân giải tên miền không chỉ đảm bảo tính toàn vẹn của kết quả trả về mà còn che giấu mô hình truy vấn, gia tăng tính chủ động của hệ thống phòng thủ.

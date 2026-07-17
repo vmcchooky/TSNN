@@ -1,2 +1,17 @@
-﻿\section{Mục tiêu dự án}
+\section{Mục tiêu dự án}
 
+Mục tiêu cốt lõi của đề tài là nghiên cứu, thiết kế và phát triển Safe Zone --- một hệ thống phân giải tên miền (DNS) tích hợp cơ chế đánh giá rủi ro, nhằm ngăn chặn các chiến dịch tấn công giả mạo (phishing) nhắm vào người dùng và tổ chức tại Việt Nam. Hệ thống được định hướng hoạt động như một lớp bảo vệ chủ động tại tầng mạng, cho phép phân tích và vô hiệu hóa các tên miền độc hại trước khi thiết bị đầu cuối thiết lập kết nối, đồng thời tối ưu hóa tài nguyên cho quá trình vận hành thực tế.
+
+Để hiện thực hóa mục tiêu tổng quát, dự án tập trung giải quyết các mục tiêu kỹ thuật cụ thể bao gồm:
+
+\begin{itemize}
+    \item \textbf{Xây dựng nền tảng phân giải DNS bảo mật:} Triển khai dịch vụ DNS lõi hỗ trợ các giao thức mã hóa như DoH và DoT để bảo vệ tính riêng tư của truy vấn. Ứng dụng cơ chế hố DNS (DNS sinkhole) nhằm chuyển hướng các yêu cầu phân giải tên miền độc hại sang trang cảnh báo an toàn.
+    
+    \item \textbf{Phát triển hệ thống chấm điểm rủi ro tên miền (Domain risk scoring):} Kết hợp việc tra cứu dữ liệu tình báo mối đe dọa (threat intelligence) với thuật toán chấm điểm ngữ vựng (lexical scoring) có tính xác định luận. Xây dựng thêm một lớp phân tích phụ trợ bằng AI để đánh giá ngữ cảnh của các tên miền phức tạp mà không làm ảnh hưởng đến độ trễ chung của hệ thống.
+    
+    \item \textbf{Thiết kế kiến trúc mở khi lỗi (Fail-open):} Đảm bảo dịch vụ phân giải tên miền cốt lõi luôn duy trì hoạt động ngay cả khi các thành phần phân tích phụ trợ, hệ thống bộ nhớ đệm (Redis) hoặc kết nối AI gặp sự cố, từ đó ngăn ngừa tình trạng tắc nghẽn toàn bộ luồng mạng.
+    
+    \item \textbf{Quản lý cấu hình động và giám sát tập trung:} Phát triển giao diện quản trị điều hành (operator control plane) kết hợp khả năng tải lại nóng (hot-reload). Quản trị viên có thể điều chỉnh trọng số của các thuật toán chấm điểm hoặc cập nhật nguồn dữ liệu qua cơ chế Pub/Sub mà không yêu cầu gián đoạn dịch vụ.
+    
+    \item \textbf{Tối ưu hóa mô hình triển khai:} Chuẩn hóa quy trình đóng gói và vận hành hệ thống thông qua vùng chứa (container), cho phép triển khai linh hoạt trên các hạ tầng máy chủ ảo (VPS) cơ bản với mức chi phí thấp nhưng vẫn duy trì năng lực xử lý ở quy mô lớn.
+\end{itemize}

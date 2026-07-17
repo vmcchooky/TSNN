@@ -1,2 +1,11 @@
-﻿\section{Phân tích ngữ vựng và Trí tuệ nhân tạo}
+\section{Phân tích ngữ vựng và Trí tuệ nhân tạo}
 
+Bên cạnh việc đối chiếu với cơ sở dữ liệu tình báo mối đe dọa (threat intelligence), việc nhận diện các tên miền lừa đảo hoàn toàn mới (zero-day phishing) đòi hỏi hệ thống phải có cơ chế phân tích tại thời gian thực. Cơ chế bảo vệ này được chia làm hai lớp bổ trợ lẫn nhau: phân tích ngữ vựng xác định luận ở lớp lõi và tinh chỉnh bằng trí tuệ nhân tạo ở lớp mở rộng.
+
+\subsection{Cơ chế phân tích ngữ vựng xác định luận (Deterministic Lexical Analysis)}
+Phân tích ngữ vựng (lexical scoring) là quá trình đánh giá mức độ rủi ro của một tên miền thông qua việc kiểm tra cấu trúc chuỗi ký tự mà không cần thực hiện các truy vấn mạng ngoại vi. Thuật toán phân tích dựa trên các đặc trưng ngôn ngữ học và các quy tắc xác định luận (deterministic rules). Các tín hiệu này bao gồm việc tính toán giá trị Shannon Entropy nhằm phát hiện thuật toán sinh tên miền tự động (DGA), phân tích nhãn Punycode để nhận diện tấn công đồng hình (typosquatting), và đối chiếu sự xuất hiện của các từ khóa lừa đảo đặc thù. Phương pháp này mang lại ưu điểm vượt trội về tốc độ xử lý nhờ chi phí tính toán thấp. Qua đó, hệ thống có thể phán định rủi ro ở mức mili-giây, đảm bảo độ trễ phân giải DNS được kiểm soát chặt chẽ trong môi trường mạng thực tế.
+
+\subsection{Tinh chỉnh rủi ro bằng Trí tuệ nhân tạo (AI Refinement)}
+Mặc dù phương pháp phân tích ngữ vựng hoạt động nhanh chóng và ổn định, cơ chế này có thể gặp khó khăn trong việc phân loại các tên miền có cấu trúc tinh vi mang tính chất nhập nhằng (ambiguous domains). Để khắc phục giới hạn này, một mô hình ngôn ngữ lớn dung lượng nhẹ (ví dụ: Gemini 2.5 Flash Lite) được tích hợp để đóng vai trò như một bộ lọc tinh chỉnh (refinement). AI sẽ tiến hành phân tích ngữ nghĩa chuyên sâu đối với các tên miền rơi vào ngưỡng rủi ro không rõ ràng, từ đó gia tăng độ chính xác và hạn chế tỷ lệ nhận diện sai (false positive). 
+
+Quá trình tích hợp AI được thiết kế tuân thủ nghiêm ngặt nguyên tắc kiến trúc mở khi lỗi (fail-open). Trong trường hợp API của mô hình AI gặp sự cố kết nối, vượt quá thời gian chờ (timeout) hoặc trả về định dạng JSON không hợp lệ, hệ thống sẽ tự động bỏ qua bước tinh chỉnh này và sử dụng kết quả phán định ban đầu từ bộ đánh giá ngữ vựng. Thiết kế dự phòng này đảm bảo luồng dịch vụ phân giải tên miền tiếp tục vận hành liên tục, không cho phép các sự cố của bên thứ ba làm tắc nghẽn hoạt động mạng tổng thể.
