@@ -1,2 +1,83 @@
-﻿\section{Cấu trúc mã nguồn}
+\section{Cấu trúc mã nguồn}
 
+Dự án Safe Zone được tổ chức thành các không gian làm việc (workspace) biệt lập, tuân thủ chặt chẽ mô hình phân lớp của ngôn ngữ Go. Cách phân bổ này nhằm chia tách rõ ràng giữa mã nguồn khởi chạy tiến trình (entrypoints), logic nghiệp vụ lõi (core business logic) và giao diện quản trị (frontend dashboard).
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.8cm and 1cm,
+        box/.style={rectangle, draw=gray!60, rounded corners=4pt, minimum width=3.2cm, minimum height=0.9cm, align=center, fill=cyan!3, font=\sffamily\small},
+        group/.style={rectangle, draw=gray!40, rounded corners=6pt, inner sep=14pt, dashed},
+        arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80}
+    ]
+        % cmd layer
+        \node[box] (cmd) {\textbf{cmd/}\\(Entrypoints)};
+        \node[box, right=of cmd, fill=blue!3] (coreapi) {\textbf{core-api}\\(API \& Dashboard)};
+        \node[box, below=0.2cm of coreapi, fill=blue!3] (dnsresolver) {\textbf{dns-resolver}\\(DoH/DoT Service)};
+        \node[box, below=0.2cm of dnsresolver, fill=blue!3] (feedsyncd) {\textbf{feed-syncd}\\(Background Daemon)};
+        
+        \node[group, fit=(cmd)(coreapi)(dnsresolver)(feedsyncd)] (cmd_group) {};
+        \node[above right, font=\sffamily\bfseries\small, text=gray!80] at (cmd_group.north west) {Tầng Thực thi};
+
+        \draw[arrow] (cmd.east) -- (coreapi.west);
+        \draw[arrow] (cmd.east) -- (dnsresolver.west);
+        \draw[arrow] (cmd.east) -- (feedsyncd.west);
+
+        % internal layer
+        \node[box, anchor=north west] (internal) at ($(cmd_group.south -| cmd.west) + (0, -1.2cm)$) {\textbf{internal/}\\(Core Logic)};
+        \node[box, right=of internal] (risk) {\textbf{risk \& analysis}\\(Lexical \& Scoring)};
+        \node[box, below=0.2cm of risk] (dns) {\textbf{dns}\\(DNS Wire Format)};
+        \node[box, below=0.2cm of dns] (ai) {\textbf{ai \& osint}\\(Refinement)};
+        \node[box, right=of risk] (cache) {\textbf{cache \& store}\\(Redis \& SQLite)};
+        
+        \node[group, fit=(internal)(risk)(dns)(ai)(cache)] (internal_group) {};
+        \node[above right, font=\sffamily\bfseries\small, text=gray!80] at (internal_group.north west) {Tầng Nghiệp vụ};
+
+        \draw[arrow] (internal.east) -- (risk.west);
+        \draw[arrow] (internal.east) -- (dns.west);
+        \draw[arrow] (internal.east) -- (ai.west);
+        \draw[arrow] (risk.east) -- (cache.west);
+
+        % ui & ops layer
+        \node[box, anchor=north west, fill=gray!10] (ui) at ($(internal_group.south -| cmd.west) + (0, -1.2cm)$) {\textbf{ui/}\\(React SPA)};
+        \node[box, right=of ui, fill=gray!10] (ops) {\textbf{ops/ \& scripts/}\\(Deployment)};
+
+        \node[group, fit=(ui)(ops)] (ui_group) {};
+        \node[above right, font=\sffamily\bfseries\small, text=gray!80] at (ui_group.north west) {Tầng Giao diện \& Vận hành};
+
+    \end{tikzpicture}
+    \caption{Sơ đồ tổ chức mã nguồn và định hướng phân tầng trong Safe Zone}
+    \label{fig:source_code_structure}
+\end{figure}
+
+Việc chia tách mã nguồn thành các khối chức năng riêng biệt mang lại khả năng tái sử dụng mã cao và đảm bảo tính đóng gói. Cấu trúc thư mục của Safe Zone được quy hoạch thành ba tầng chính:
+
+\textbf{Tầng thực thi (Entrypoints - \texttt{cmd/})}
+
+Thư mục \texttt{cmd/} chứa mã nguồn khởi tạo cho các tiến trình độc lập của hệ thống. Thay vì xây dựng một ứng dụng nguyên khối (monolith) khổng lồ, Safe Zone biên dịch thành các tệp nhị phân riêng biệt:
+\begin{itemize}
+    \item \texttt{core-api}: Cung cấp API REST phục vụ kiểm tra sức khỏe hệ thống, truy vấn điểm rủi ro tên miền và phân phối giao diện quản trị (Operator UI).
+    \item \texttt{dns-resolver}: Dịch vụ phân giải DNS trực tiếp hỗ trợ giao thức DoH (DNS over HTTPS) và DoT (DNS over TLS), tiếp nhận và xử lý yêu cầu từ thiết bị đầu cuối.
+    \item \texttt{feed-syncd}: Tiến trình chạy ngầm (daemon) phụ trách đồng bộ định kỳ các nguồn tình báo mối đe dọa (threat intelligence) từ URLhaus hoặc OpenPhish.
+\end{itemize}
+Kiến trúc đa tiến trình này củng cố nguyên tắc mở khi lỗi (fail-open) của hệ thống. Nếu \texttt{core-api} gặp sự cố hoặc đang trong quá trình tải lại cấu hình nóng (hot-reload), dịch vụ \texttt{dns-resolver} vẫn duy trì khả năng phản hồi truy vấn DNS bằng các bộ định tuyến (router) và quy tắc hiện có trong bộ nhớ.
+
+\textbf{Tầng nghiệp vụ (Core Logic - \texttt{internal/})}
+
+Thư mục \texttt{internal/} đóng gói toàn bộ logic nghiệp vụ cốt lõi, cơ chế bảo vệ của Go ngăn chặn các dự án bên ngoài sử dụng trực tiếp các gói này. Một số thành phần trọng yếu bao gồm:
+\begin{itemize}
+    \item \texttt{analysis} và \texttt{risk}: Chịu trách nhiệm chấm điểm ngữ vựng (lexical scoring) và đánh giá rủi ro tổng thể. Luồng phân tích xác định luận (deterministic) đối chiếu các dấu hiệu đe dọa trước khi quyết định đưa tên miền vào hố DNS (DNS sinkhole).
+    \item \texttt{ai}: Tích hợp mô hình ngôn ngữ lớn để hỗ trợ tinh chỉnh (refinement) phán định. Cơ chế này được kích hoạt linh hoạt khi tên miền có điểm rủi ro nằm ở ngưỡng nghi ngờ (suspicious).
+    \item \texttt{dns}: Cung cấp các tiện ích xử lý bản tin định dạng mạng (wire-format) và giao tiếp theo chuẩn RFC cho các giao thức DNS tiên tiến.
+    \item \texttt{cache} và \texttt{store}: Quản lý tương tác với Redis (lưu trữ tập hợp tình báo đe dọa) và SQLite (bộ nhớ đệm cho dữ liệu WHOIS, siêu dữ liệu cấu hình).
+\end{itemize}
+Việc quy tụ logic xử lý chung vào \texttt{internal/} giúp cả \texttt{core-api} và \texttt{dns-resolver} có thể chia sẻ cùng một bộ máy đánh giá rủi ro mà không xảy ra tình trạng phân mảnh hoặc trùng lặp mã nguồn.
+
+\textbf{Tầng giao diện và Vận hành (\texttt{ui/}, \texttt{ops/}, \texttt{scripts/})}
+
+\begin{itemize}
+    \item \texttt{ui/}: Chứa mã nguồn của ứng dụng trang đơn (Embedded SPA) xây dựng bằng React. Ứng dụng này được biên dịch tĩnh và nhúng trực tiếp vào tệp nhị phân \texttt{core-api}. Nhờ đó, việc triển khai không yêu cầu cấu hình thêm máy chủ web riêng lẻ.
+    \item \texttt{ops/} và \texttt{scripts/}: Tập hợp các kịch bản tự động hóa (PowerShell/Bash) hỗ trợ vòng đời vận hành. Khu vực này bao gồm định nghĩa Docker Compose, tập lệnh sao lưu/phục hồi dữ liệu, và các quy tắc cảnh báo (alert rules).
+\end{itemize}
+
+Cách quy hoạch không gian làm việc này hạn chế sự phụ thuộc vòng (circular dependency) vốn thường gặp trong Go, đồng thời cho phép bảo trì và mở rộng hệ thống một cách có tổ chức khi tích hợp thêm tính năng mới.

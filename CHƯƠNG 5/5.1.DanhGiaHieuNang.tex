@@ -1,2 +1,42 @@
-﻿\section{Đánh giá hiệu năng và độ trễ}
+\section{Đánh giá hiệu năng và độ trễ}
 
+Hiệu năng xử lý và độ trễ phản hồi là hai tiêu chí sống còn đối với bất kỳ hệ thống phân giải tên miền (DNS Resolver) nào, đặc biệt khi hệ thống phải gánh vác thêm tải trọng từ chu trình bóc tách ngữ vựng và suy luận trí tuệ nhân tạo (AI Inference). Quá trình đánh giá hiệu năng của dự án Safe Zone được tiến hành trong môi trường độc lập, sử dụng công cụ giả lập tải tự động kết hợp với các kịch bản thực tế (Real-world Scenarios) nhằm đảm bảo tính khách quan của số liệu.
+
+\subsection{Đánh giá độ trễ phân giải (Latency)}
+
+Mục tiêu của bài thử nghiệm là đo lường thời gian đáp ứng (Response Time) của hệ thống trước các luồng truy vấn. Quá trình xử lý của Safe Zone được chia làm 3 trường hợp chính: Truy vấn đã tồn tại trong bộ nhớ đệm RAM (Redis Cache Hit), truy vấn tồn tại trong cơ sở dữ liệu cục bộ (SQLite Local Hit), và truy vấn hoàn toàn mới yêu cầu mô hình AI phân tích (AI Inference Miss).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_latency.png}
+    \caption{So sánh độ trễ phân giải tên miền trong các kịch bản truy vấn}
+    \label{fig:bench_latency}
+\end{figure}
+
+Như được minh họa tại Hình \ref{fig:bench_latency}, nhờ kiến trúc lưu trữ phân lớp (Tiered Storage), các tên miền đã phân giải thành công và lưu trữ tại bộ nhớ đệm Redis cho thời gian phản hồi vô cùng lý tưởng, đạt ngưỡng $\sim$ 1.2 ms. Ở tầng lưu trữ bền vững SQLite, độ trễ nhích nhẹ lên $\sim$ 8.5 ms, hoàn toàn đáp ứng được tiêu chuẩn phản hồi thời gian thực. Đối với các tên miền chưa từng xuất hiện (Cache Miss), hệ thống phải tiến hành trích xuất đặc trưng và gọi mô hình AI suy luận, đẩy độ trễ lên mức $\sim$ 110.5 ms. Dù cao hơn đáng kể so với truy xuất từ Cache, con số này vẫn nằm trong ngưỡng chấp nhận được của một hệ thống phòng thủ chủ động mà không gây ra hiện tượng nghẽn cổ chai (Bottleneck) mạng lõi.
+
+\subsection{Đánh giá khả năng chịu tải (Throughput)}
+
+Để đánh giá giới hạn đáp ứng của hệ thống, bài kiểm tra sức chịu tải (Stress Test) được thực hiện thông qua việc tăng dần số lượng kết nối đồng thời (Concurrency Level) từ 10 lên đến 1000 kết nối/giây. Chỉ số được sử dụng là Số lượng truy vấn trên mỗi giây (QPS - Queries Per Second).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_throughput.png}
+    \caption{Khả năng chịu tải (Throughput) của hệ thống khi tăng dần số lượng kết nối đồng thời}
+    \label{fig:bench_throughput}
+\end{figure}
+
+Biểu đồ \ref{fig:bench_throughput} cho thấy khả năng mở rộng (Scalability) vượt trội của kiến trúc Cache. Khi mức độ đồng thời (Concurrency) đạt mốc 1000, hệ thống xử lý hoàn toàn từ bộ nhớ đệm có thể dễ dàng chạm mốc 48,000 QPS với đồ thị tiếp tục duy trì xu hướng tuyến tính. Ngược lại, luồng xử lý AI Inference (yêu cầu sức mạnh tính toán CPU để bóc tách Lexical Features) đạt ngưỡng bão hòa (Plateau) tại khoảng 1,300 QPS. Kết quả này chứng minh rằng chiến lược Cache là bắt buộc và hoàn toàn hiệu quả để bảo vệ động cơ AI khỏi hiện tượng quá tải từ các đợt tấn công từ chối dịch vụ (DDoS) hoặc bão truy vấn DNS.
+
+\subsection{Đánh giá độ ổn định của Mô hình AI}
+
+Việc áp dụng học máy vào quá trình chạy nền có thể đem lại rủi ro về sự bất định trong thời gian phản hồi. Để phân tích điều này, hệ thống tiến hành kiểm tra trên tập dữ liệu gồm 1000 tên miền ngẫu nhiên nhằm đo lường phân phối thời gian thực thi trích xuất đặc trưng và suy luận học máy.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{img/benchmark_inference.png}
+    \caption{Phân phối thời gian thực thi quá trình phân tích ngữ vựng và suy luận AI}
+    \label{fig:bench_inference}
+\end{figure}
+
+Kết quả phân phối dạng hộp (Boxplot) tại Hình \ref{fig:bench_inference} khẳng định độ ổn định (Stability) của động cơ học máy. Hầu hết thời gian suy luận đều tập trung dày đặc quanh khoảng trung vị (Median) 105 ms. Một số ít các trường hợp ngoại lai (Outliers) có thời gian xử lý kéo dài lên mức 140 - 150 ms, chủ yếu bắt nguồn từ các tên miền có cấu trúc chuỗi quá dài hoặc chứa ký tự đa ngôn ngữ phức tạp, đòi hỏi chi phí trích xuất Entropy cao hơn bình thường. Nhìn chung, mô hình hoạt động đáng tin cậy và không tạo ra độ trễ đột biến (Spikes) quá lớn gây tổn hại đến toàn cục hệ thống.

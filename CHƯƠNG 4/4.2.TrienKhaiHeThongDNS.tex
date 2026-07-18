@@ -1,2 +1,72 @@
-﻿\section{Triển khai hệ thống phân giải tên miền (DNS) và chính sách}
+\section{Triển khai hệ thống DNS}
 
+Phân hệ \texttt{dns-resolver} đóng vai trò là cửa ngõ giao tiếp trực tiếp với thiết bị của người dùng. Tuy nhiên, để đảm bảo an ninh, tính khả dụng và khả năng mở rộng, hệ thống DNS không đứng độc lập mà được triển khai phối hợp cùng các dịch vụ lõi khác trong một kiến trúc mạng nội bộ bảo mật (Docker Internal Network).
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm and 1cm,
+        box/.style={rectangle, draw=gray!60, rounded corners=4pt, minimum width=3.2cm, minimum height=0.9cm, align=center, fill=cyan!3, font=\sffamily\small},
+        db/.style={cylinder, draw=gray!60, shape border rotate=90, aspect=0.25, minimum width=2.5cm, minimum height=1.2cm, align=center, fill=purple!5, font=\sffamily\small},
+        group/.style={rectangle, draw=gray!40, rounded corners=6pt, inner sep=14pt, dashed},
+        arrow/.style={-{Stealth[scale=1.1]}, thick, draw=gray!80},
+        biarrow/.style={<->, >=Stealth, thick, draw=gray!80}
+    ]
+        % Internet & Proxy
+        \node[ellipse, draw=gray!60, fill=gray!10, minimum width=2.5cm, minimum height=0.8cm, font=\sffamily\bfseries] (internet) {Internet};
+        \node[box, below=0.8cm of internet, fill=blue!5] (caddy) {\textbf{Caddy}\\(Reverse Proxy \& TLS)};
+        
+        \draw[arrow] (internet) -- (caddy) node[midway, right, font=\sffamily\scriptsize] {DNS / HTTPS};
+
+        % Upstream (Left of Caddy)
+        \node[box, left=1cm of caddy, fill=green!5] (upstream) {\textbf{Cloudflare}\\(Upstream DoH)};
+
+        % Core Services
+        \node[box, below=1.5cm of caddy] (dns) {\textbf{dns-resolver}\\(:8081 DoH, :853 DoT)};
+        \node[box, right=0.8cm of dns] (api) {\textbf{core-api}\\(:8080, React SPA)};
+        \node[box, left=0.8cm of dns] (feed) {\textbf{feed-syncd}\\(Background Daemon)};
+
+        % Group Docker
+        \node[group, fit=(dns)(api)(feed)] (docker_group) {};
+        \node[above right, font=\sffamily\bfseries\small, text=gray!80] at (docker_group.north west) {Docker Internal Network};
+
+        % Connections from Caddy
+        \draw[arrow] (caddy) -- (dns) node[midway, right, font=\sffamily\scriptsize] {DoH/DoT};
+        \draw[arrow] (caddy) -- (api) node[midway, right, xshift=2pt, yshift=2pt, font=\sffamily\scriptsize] {REST API};
+
+        % Connection to Upstream
+        \draw[arrow] (dns) -- (upstream) node[midway, right, xshift=2pt, yshift=2pt, font=\sffamily\scriptsize] {Forward};
+
+        % Databases
+        \node[db, below=2cm of dns, xshift=-2cm] (redis) {\textbf{Redis}\\(Threat Feeds)};
+        \node[db, below=2cm of dns, xshift=2cm] (sqlite) {\textbf{SQLite}\\(Config \& Cache)};
+
+        % Group Storage
+        \node[group, fit=(redis)(sqlite)] (storage_group) {};
+        \node[below right, font=\sffamily\bfseries\small, text=gray!80] at (storage_group.south west) {Storage Volumes};
+
+        % DB Connections
+        \draw[biarrow] (feed) -- (redis);
+        \draw[biarrow] (dns) -- (redis);
+        \draw[biarrow] (dns) -- (sqlite);
+        \draw[biarrow] (api) -- (sqlite);
+        \draw[biarrow] (api) -- (redis);
+
+    \end{tikzpicture}
+    \caption{Kiến trúc triển khai mạng và dịch vụ (Deployment Architecture) của Safe Zone}
+    \label{fig:deployment_architecture}
+\end{figure}
+
+Quá trình triển khai thực tế của hệ thống phân giải tên miền được thiết kế theo nguyên tắc thu hẹp bề mặt tấn công (attack surface reduction) và tối ưu hóa luồng giao tiếp nội bộ.
+
+\textbf{Điểm vào duy nhất với Reverse Proxy}
+
+Thay vì mở trực tiếp các cổng dịch vụ ra ngoài Internet, hệ thống sử dụng Caddy làm máy chủ ủy quyền ngược (reverse proxy). Caddy chịu trách nhiệm quản lý tự động chứng chỉ SSL/TLS, tiếp nhận mọi lưu lượng HTTP/HTTPS và phân luồng (routing) dựa trên tên miền con hoặc đường dẫn. Các truy vấn DNS over HTTPS (DoH) sẽ được định tuyến an toàn đến \texttt{dns-resolver} qua cổng nội bộ \texttt{8081}, trong khi các truy vấn quản trị được chuyển hướng đến \texttt{core-api} tại cổng \texttt{8080}. Thiết kế này đảm bảo toàn bộ giao tiếp giữa các tiến trình Go diễn ra hoàn toàn trong không gian mạng ảo của Docker (Docker Internal Network) mà không bị phơi nhiễm ra môi trường ngoài.
+
+\textbf{Giao tiếp với không gian lưu trữ}
+
+Các bộ nhớ dữ liệu bao gồm Redis (chứa tập hợp tình báo mối đe dọa lớn) và SQLite (chứa siêu dữ liệu cấu hình, bộ nhớ đệm WHOIS) được cách ly trong khối Storage Volumes. Tiến trình \texttt{dns-resolver} duy trì kết nối liên tục (persistent connection) tốc độ cao với Redis để kiểm tra trạng thái tên miền độc hại trong thời gian tính bằng micro-giây. Song song đó, tiến trình \texttt{feed-syncd} chạy ngầm định kỳ kéo dữ liệu mới từ các nguồn cấp (feeds) và cập nhật trực tiếp vào Redis thông qua các lệnh nguyên tử (atomic operations) nhằm đảm bảo \texttt{dns-resolver} luôn có dữ liệu mới nhất mà không gây khóa luồng (thread blocking).
+
+\textbf{Kiến trúc phân giải ngược dòng (Upstream Forwarding)}
+
+Đối với các tên miền an toàn, \texttt{dns-resolver} không tự thực hiện phân giải đệ quy toàn trình (full recursive lookup) để tối ưu độ trễ. Thay vào đó, hệ thống đóng vai trò như một bộ chuyển tiếp (forwarder) đến các máy chủ DNS ngược dòng (upstream) tốc độ cao và đề cao quyền riêng tư như Cloudflare thông qua đường hầm mã hóa DoH. Việc này vừa tận dụng được hệ thống bộ nhớ đệm khổng lồ của Upstream, vừa che giấu được thói quen duyệt web của người dùng đầu cuối khỏi các nhà cung cấp dịch vụ mạng (ISP).

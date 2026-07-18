@@ -1,2 +1,75 @@
-﻿\section{Triển khai dịch vụ phân tích và cập nhật nguồn dữ liệu}
+\section{Triển khai phân tích và cập nhật dữ liệu}
 
+Phần này trình bày chi tiết về hai luồng xử lý dữ liệu lõi của hệ thống Safe Zone: quá trình đồng bộ tình báo mối đe dọa (Threat Feeds Sync) và động cơ phân tích rủi ro tên miền (Analysis Engine). Cả hai tiến trình được thiết kế theo nguyên lý bất đồng bộ (asynchronous) và phi trạng thái (stateless) nhằm tối ưu hóa hiệu suất, tránh tắc nghẽn (blocking) cho quá trình phân giải DNS.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}[
+        node distance=2.5cm,
+        auto,
+        actor/.style={rectangle, draw=gray!70, fill=blue!5, rounded corners, minimum width=2.4cm, minimum height=0.8cm, font=\sffamily\bfseries\small, align=center},
+        timeline/.style={draw=gray!50, dashed, thick},
+        msg/.style={-{Stealth[scale=1.1]}, font=\sffamily\scriptsize, draw=gray!80},
+        return/.style={-{Stealth[scale=1.1]}, dashed, font=\sffamily\scriptsize, draw=gray!80},
+        self/.style={-{Stealth[scale=1.1]}, font=\sffamily\scriptsize, draw=gray!80}
+    ]
+        % Actors
+        \node[actor] (cron) {Cron};
+        \node[actor, right=1.5cm of cron] (sync) {feed-syncd};
+        \node[actor, right=2.2cm of sync, fill=green!5] (osint) {OSINT Sources};
+        \node[actor, right=2.2cm of osint, fill=purple!5] (redis) {Redis Storage};
+        \node[actor, right=2cm of redis, fill=cyan!5] (dns) {dns-resolver};
+
+        % Timelines
+        \draw[timeline] (cron.south) -- +(0,-5.5) coordinate (cron_end);
+        \draw[timeline] (sync.south) -- +(0,-5.5) coordinate (sync_end);
+        \draw[timeline] (osint.south) -- +(0,-5.5) coordinate (osint_end);
+        \draw[timeline] (redis.south) -- +(0,-5.5) coordinate (redis_end);
+        \draw[timeline] (dns.south) -- +(0,-5.5) coordinate (dns_end);
+
+        % Messages
+        \coordinate (t1) at ($(cron.south) + (0,-0.8)$);
+        \draw[msg] (t1) -- (t1 -| sync) node[midway, above] {Trigger Event};
+
+        \coordinate (t2) at ($(sync.south) + (0,-1.6)$);
+        \draw[msg] (t2) -- (t2 -| osint) node[midway, above] {HTTP GET};
+
+        \coordinate (t3) at ($(sync.south) + (0,-2.4)$);
+        \draw[return] (t3 -| osint) -- (t3) node[midway, yshift=2pt, anchor=south] {Gzip Stream};
+
+        \coordinate (t4) at ($(sync.south) + (0,-3.2)$);
+        \draw[self] (t4) -- +(0.9,0) |- ($(t4) + (0,-0.6)$) node[pos=0.25, right] {Parse \& Filter};
+
+        \coordinate (t5) at ($(sync.south) + (0,-4.2)$);
+        \draw[msg] (t5) -- (t5 -| redis) node[midway, above] {Pipeline MSet (Batch)};
+
+        \coordinate (t6) at ($(dns.south) + (0,-4.5)$);
+        \draw[msg] (t6) -- (t6 -| redis) node[midway, yshift=2pt, anchor=south] {Query Domain};
+
+        \coordinate (t7) at ($(dns.south) + (0,-5.1)$);
+        \draw[return] (t7 -| redis) -- (t7) node[midway, above] {O(1) Lock-free Read};
+
+    \end{tikzpicture}
+    }
+    \caption{Sơ đồ tuần tự (Sequence Diagram) quá trình đồng bộ và truy xuất dữ liệu}
+    \label{fig:feed_sync_flow}
+\end{figure}
+
+\textbf{Triển khai luồng đồng bộ dữ liệu (feed-syncd)}
+
+Tiến trình \texttt{feed-syncd} hoạt động như một tiến trình ngầm (Background Daemon), chịu trách nhiệm duy trì tính cập nhật của bộ lọc danh sách đen (Blacklist). Quá trình đồng bộ bao gồm các kỹ thuật tối ưu hóa sau:
+\begin{itemize}
+    \item \textbf{Tải luồng dữ liệu (Stream Download):} Thay vì tải toàn bộ tập tin danh sách vào RAM, hệ thống sử dụng cơ chế đọc luồng (\texttt{io.Reader}) kết hợp giải nén Gzip trực tiếp trên luồng bộ nhớ (memory stream). Kỹ thuật này giúp kiểm soát chặt chẽ mức tiêu thụ bộ nhớ (Memory Footprint) kể cả khi xử lý các tập dữ liệu lên đến hàng trăm Megabyte.
+    \item \textbf{Tiền xử lý và lọc nhiễu (Parse \& Filter):} Dữ liệu đầu vào được làm sạch tức thời (on-the-fly) thông qua biểu thức chính quy (Regex) và phân tích chuỗi. Quá trình này tự động loại bỏ các dòng bình luận, chuẩn hóa tên miền về dạng chữ thường (lowercase) và loại bỏ các tên miền không đúng chuẩn (Invalid FQDN).
+    \item \textbf{Ghi dữ liệu theo lô (Batch Pipeline):} Cập nhật hàng triệu bản ghi vào bộ nhớ đệm nếu thực hiện bằng các lệnh đơn lẻ sẽ tạo ra nút thắt cổ chai về I/O mạng. \texttt{feed-syncd} khắc phục vấn đề này bằng cơ chế Redis Pipeline, gộp các lệnh ghi thành từng lô (batch) để gửi đi trong một lượt (Round-trip time - RTT), đảm bảo cập nhật siêu tốc mà không làm gián đoạn (locking) các luồng đọc song song từ bộ phân giải.
+\end{itemize}
+
+\textbf{Triển khai động cơ phân tích rủi ro (Analysis Engine)}
+
+Mô-đun Analysis Engine được tích hợp chung vào các phân hệ \texttt{dns-resolver} và \texttt{core-api}, đảm nhiệm vai trò phòng thủ chủ động (Proactive Defense) bằng cách chấm điểm rủi ro cho các tên miền hoàn toàn mới (Unknown Domains) chưa có mặt trong bất kỳ cơ sở dữ liệu nào. Các cơ chế phân tích sâu (Deep Inspection) bao gồm:
+\begin{itemize}
+    \item \textbf{Đánh giá độ hỗn loạn (Entropy Check):} Thuật toán đo lường chỉ số Shannon Entropy của cấu trúc chuỗi ký tự tên miền nhằm nhận diện dấu hiệu của các thuật toán sinh tên miền tự động (Domain Generation Algorithms - DGA). Đây là dấu hiệu đặc trưng thường thấy ở hạ tầng điều khiển mã độc (C\&C Botnet).
+    \item \textbf{Phát hiện giả mạo ngữ vựng (Lexical Analysis):} Áp dụng thuật toán khoảng cách Levenshtein (Levenshtein Distance) để so chiếu sự tương đồng của tên miền đang truy vấn với kho dữ liệu các thương hiệu nổi tiếng (BrandStore). Cơ chế này trực tiếp chặn đứng các kỹ thuật tấn công mạo danh (Typosquatting) hoặc tấn công đồng âm (Homoglyph).
+    \item \textbf{Bộ lọc nhạy cảm theo ngữ cảnh (Contextual Filters):} Triển khai các logic kiểm tra chuyên biệt nhằm phát hiện tình trạng lạm dụng từ khóa dịch vụ công tại Việt Nam (ví dụ: \texttt{dichvucong}) hoặc các định dạng lừa đảo nhắm vào tổ chức tài chính bản địa, giúp tăng tính thực tiễn và bản địa hóa của giải pháp an toàn thông tin.
+\end{itemize}
