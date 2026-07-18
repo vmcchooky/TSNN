@@ -1,2 +1,26 @@
-﻿\section{Thiết kế luồng phân tích rủi ro}
+\section{Thiết kế luồng phân tích rủi ro}
 
+Luồng phân tích rủi ro của hệ thống Safe Zone được thiết kế dựa trên triết lý kiểm tra đa lớp (multi-layered pipeline), nhằm cân bằng giữa tốc độ phân giải DNS siêu tốc và độ chính xác trong việc phát hiện tên miền lừa đảo. Mỗi truy vấn khi đi vào hệ thống sẽ lần lượt đi qua các bộ lọc từ đơn giản đến phức tạp, giúp tối ưu hóa tài nguyên tính toán và giảm thiểu độ trễ cho người dùng cuối.
+
+\input{img/risk_analysis_flow.tex}
+
+Quá trình phân tích rủi ro được chia thành các giai đoạn tuần tự sau:
+
+\textbf{1. Kiểm tra danh sách ngoại lệ (Whitelist):}
+Bước đầu tiên trong luồng xử lý là đối chiếu tên miền với danh sách ngoại lệ. Hệ thống triển khai thuật toán cấu trúc dữ liệu xác suất (Bloom filter) được nạp trực tiếp vào bộ nhớ chính (RAM) để đảm bảo thời gian tra cứu gần như tức thời ($O(1)$). Nếu tên miền khớp với danh sách ngoại lệ, hệ thống bỏ qua toàn bộ các bước phân tích phía sau và đánh giá tên miền là an toàn (SAFE), sau đó chuyển tiếp truy vấn đến DNS thượng nguồn. Cơ chế này giúp loại bỏ các cảnh báo nhầm (false positives) đối với các dịch vụ hợp lệ phổ biến.
+
+\textbf{2. Đối chiếu tình báo mối đe dọa (Threat Feed):}
+Trường hợp tên miền không nằm trong danh sách ngoại lệ, hệ thống tiến hành kiểm tra trên tập dữ liệu tình báo mối đe dọa. Dữ liệu này được đồng bộ định kỳ vào cấu trúc Set của Redis, cho phép tra cứu khớp hoàn toàn (exact match) hoặc khớp hậu tố phụ (suffix match). Bất kỳ sự trùng khớp nào tại bước này đều mang tính xác định luận (deterministic), dẫn đến việc tên miền bị phán định là độc hại (MALICIOUS) ngay lập tức và hệ thống thực hiện hố DNS (DNS sinkhole).
+
+\textbf{3. Chấm điểm ngữ vựng (Lexical Scoring):}
+Lớp bảo vệ thứ ba đóng vai trò cốt lõi trong việc phát hiện các hình thái lừa đảo mới (zero-day phishing) chưa từng xuất hiện trong danh sách chặn. Luồng phân tích ngữ vựng áp dụng các quy tắc khám phá (heuristic) dựa trên tám tín hiệu cụ thể. Tiêu biểu là việc tính toán mức độ hỗn loạn của chuỗi ký tự (Shannon Entropy) để nhận diện thuật toán sinh tên miền tự động (DGA), hoặc phân tích khoảng cách chỉnh sửa để chống giả mạo thương hiệu (brand spoofing). Kết quả của quá trình này là một điểm số rủi ro dao động từ 0 đến 100. Dựa vào điểm số, hệ thống có ba hướng rẽ nhánh:
+\begin{itemize}
+    \item \textbf{Thấp} ($< 40$): Tên miền được xem là an toàn (SAFE).
+    \item \textbf{Cao} ($\ge 70$): Tên miền bị đánh giá là độc hại (MALICIOUS).
+    \item \textbf{Nghi ngờ} ($40 - 69$): Tên miền được chuyển sang giai đoạn phân tích tăng cường.
+\end{itemize}
+
+\textbf{4. Phân tích tăng cường (AI Refinement):}
+Đối với các tên miền có ranh giới rủi ro mờ nhạt, hệ thống có thể kích hoạt tùy chọn phân tích bổ sung thông qua mô hình học ngôn ngữ lớn (ví dụ: Gemini 2.5 Flash Lite). Bước này tự động thu thập thêm thông tin cấu trúc (WHOIS) từ bộ đệm SQLite và phân tích chứng chỉ TLS nhằm cung cấp ngữ cảnh (context) mở rộng cho AI phán định. 
+
+Điều làm nên tính bền bỉ của hệ thống tại lớp này là kiến trúc mở khi lỗi (fail-open). Nếu liên kết với API của mô hình AI bị gián đoạn hoặc thời gian chờ vượt quá giới hạn (timeout), hệ thống sẽ chủ động hạ cấp đánh giá rủi ro để tên miền được đi qua. Cơ chế này đảm bảo sự cố tại một tiến trình phụ trợ không làm nghẽn toàn bộ luồng phân giải DNS, giúp duy trì kết nối mạng của thiết bị ở mức tối đa.

@@ -1,2 +1,32 @@
-﻿\section{Phân tích yêu cầu}
+\section{Phân tích yêu cầu}
 
+Hệ thống Safe Zone được thiết kế với mục tiêu cốt lõi là ngăn chặn các cuộc tấn công giả mạo (phishing) nhắm vào người dùng tại Việt Nam ngay từ cấp độ mạng. Do đặc thù hoạt động ở tầng phân giải DNS, hệ thống đòi hỏi một kiến trúc đáp ứng đồng thời tính sẵn sàng trong định tuyến và tính linh hoạt trong phân tích rủi ro. Các yêu cầu đối với hệ thống được chia thành hai nhóm chính: yêu cầu chức năng và yêu cầu phi chức năng.
+
+\subsection{Yêu cầu chức năng}
+
+Các chức năng của hệ thống tập trung vào việc tiếp nhận truy vấn, phân tích rủi ro và quản trị vận hành.
+
+\textbf{Phân giải tên miền an toàn:}
+Hệ thống đóng vai trò như một máy chủ DNS độc lập, tiếp nhận các truy vấn từ thiết bị người dùng cuối. Để ngăn chặn rủi ro nghe lén trên đường truyền, hệ thống bắt buộc hỗ trợ các giao thức mã hóa hiện đại bao gồm DNS over HTTPS (DoH) và tùy chọn DNS over TLS (DoT). Các truy vấn đầu vào được xử lý theo định dạng chuẩn DNS wire-format trước khi chuyển qua luồng phân tích. Nếu tên miền bị đánh giá là độc hại, hệ thống thực hiện cơ chế hố DNS (DNS sinkhole) bằng cách chuyển hướng kết quả về một trang cảnh báo thay vì địa chỉ IP thực tế.
+
+\textbf{Phân tích và phát hiện rủi ro:}
+Việc xác định tên miền độc hại dựa trên hai lớp bảo vệ song song. Lớp thứ nhất là đối chiếu tên miền với các nguồn dữ liệu tình báo mối đe dọa (threat intelligence) đã được đồng bộ. Lớp thứ hai áp dụng kỹ thuật chấm điểm ngữ vựng (lexical scoring) để phát hiện thuật toán sinh tên miền tự động (DGA) hoặc các dạng giả mạo thương hiệu (brand spoofing) chưa từng xuất hiện trong danh sách chặn. Quá trình phân tích cung cấp điểm số rủi ro tên miền phục vụ cho việc ra quyết định truy cập. Ngoài ra, hệ thống cho phép tích hợp phân tích bổ sung thông qua mô hình học ngôn ngữ lớn đối với các tên miền có ranh giới rủi ro không rõ ràng.
+
+\textbf{Đồng bộ dữ liệu đe dọa:}
+Hệ thống yêu cầu một tiến trình nền hoạt động độc lập nhằm tự động thu thập và chuẩn hóa dữ liệu từ các nguồn mở. Dữ liệu này được làm sạch, loại bỏ trùng lặp và phân bổ vào bộ nhớ đệm (Redis) để sẵn sàng cung cấp cho quá trình truy vấn tốc độ cao của dịch vụ phân giải.
+
+\textbf{Quản trị và giám sát hệ thống:}
+Giao diện quản trị là một ứng dụng trang đơn nhúng (embedded SPA), cung cấp không gian cho quản trị viên theo dõi lượng truy vấn và tỷ lệ tên miền bị chặn. Yêu cầu vận hành then chốt là khả năng tải lại nóng (hot-reload). Thông qua cơ chế này, quản trị viên có thể tinh chỉnh cấu hình chấm điểm hoặc cập nhật danh sách ngoại lệ và áp dụng ngay lập tức vào luồng phân tích mà không cần khởi động lại dịch vụ.
+
+\subsection{Yêu cầu phi chức năng}
+
+Bên cạnh các tính năng nghiệp vụ, hệ thống cần tuân thủ các ràng buộc về tài nguyên và kiến trúc nhằm duy trì tính liên tục của dịch vụ.
+
+\textbf{Hiệu năng và độ trễ:}
+Truy vấn DNS ảnh hưởng trực tiếp đến trải nghiệm duyệt web của người dùng. Do đó, hệ thống yêu cầu độ trễ phân giải phải được giữ ở mức tối thiểu. Các kết quả đánh giá rủi ro và thông tin bản ghi DNS được lưu trữ tạm cục bộ để tối ưu hóa thời gian phản hồi cho các yêu cầu lặp lại.
+
+\textbf{Khả năng chống chịu lỗi (Fail-open):}
+Kiến trúc hệ thống phải tuân thủ nghiêm ngặt nguyên tắc mở khi lỗi (fail-open). Trong trường hợp các thành phần phụ trợ như cơ sở dữ liệu Redis hoặc dịch vụ AI gặp sự cố, dịch vụ DNS cốt lõi vẫn tiếp tục phản hồi các truy vấn thông thường dựa trên phân tích xác định luận. Cơ chế này đảm bảo kết nối mạng của thiết bị không bị gián đoạn diện rộng khi hệ thống bảo vệ gặp lỗi nền tảng.
+
+\textbf{Triển khai và tiêu thụ tài nguyên:}
+Hướng đến tính khả thi khi vận hành dự án phi lợi nhuận, hệ thống cần tối ưu hóa mức tiêu thụ tài nguyên phần cứng. Các thành phần được đóng gói dưới dạng container (Docker) và phải hoạt động ổn định trên cấu hình máy chủ ảo (VPS) cơ bản (ví dụ: 2 vCPU, 4GB RAM).

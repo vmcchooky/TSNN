@@ -1,2 +1,22 @@
-﻿\section{Kiến trúc tổng thể}
+\section{Kiến trúc tổng thể}
 
+Kiến trúc của hệ thống Safe Zone được xây dựng theo mô hình vi dịch vụ (microservices) kết hợp với các thành phần dữ liệu phân tán. Cách tiếp cận này giúp tách biệt rành mạch giữa luồng xử lý phân giải tên miền tốc độ cao và luồng quản trị hệ thống, đồng thời đảm bảo khả năng duy trì dịch vụ theo nguyên tắc mở khi lỗi (fail-open).
+
+\input{img/overall_architecture.tex}
+
+Hệ thống được tổ chức thành các thành phần chính hoạt động trong một mạng nội bộ (internal network) thông qua môi trường container hóa (Docker). Các thành phần này tương tác với nhau để hoàn thiện vòng đời của một truy vấn DNS.
+
+\textbf{Lớp tiếp nhận và định tuyến (Reverse Proxy):}
+Caddy đóng vai trò là cửa ngõ duy nhất giao tiếp với mạng internet (Internet-facing). Nhiệm vụ chính của thành phần này là quản lý chứng chỉ TLS tự động và phân luồng các kết nối HTTPS. Mọi truy vấn từ thiết bị người dùng (Client) hoặc yêu cầu truy cập giao diện quản trị đều được Caddy tiếp nhận và chuyển tiếp (proxy) đến đúng dịch vụ phụ trách bên trong.
+
+\textbf{Dịch vụ phân giải cốt lõi (\texttt{dns-resolver}):}
+Đây là khối xử lý trung tâm, chuyên trách tiếp nhận các truy vấn định dạng DNS (DoH và DoT). Khi có yêu cầu, \texttt{dns-resolver} truy xuất dữ liệu từ bộ đệm, thực hiện quy trình chấm điểm ngữ vựng và đối chiếu với danh sách tình báo mối đe dọa. Nếu kết quả phán định là an toàn (SAFE), dịch vụ sẽ chuyển tiếp (forward) truy vấn đến máy chủ phân giải thượng nguồn (Upstream DNS như Cloudflare) để lấy bản ghi thực tế. Nếu phát hiện rủi ro (MALICIOUS), hệ thống kích hoạt cơ chế hố DNS (DNS sinkhole) để ngăn chặn thiết bị truy cập.
+
+\textbf{Giao diện quản trị và API (\texttt{core-api}):}
+Thành phần này quản lý toàn bộ các thao tác liên quan đến cấu hình hệ thống, theo dõi sự cố và thống kê dữ liệu. \texttt{core-api} đóng gói sẵn một ứng dụng trang đơn nhúng (embedded SPA) viết bằng React để phục vụ giao diện người dùng. Khi quản trị viên thay đổi các tham số phân tích rủi ro, \texttt{core-api} cập nhật dữ liệu vào SQLite và phát tín hiệu tải lại nóng (hot-reload) qua kênh Pub/Sub của Redis để \texttt{dns-resolver} lập tức đồng bộ mà không cần khởi động lại.
+
+\textbf{Tiến trình đồng bộ dữ liệu (\texttt{feed-syncd}):}
+Thành phần đồng bộ nền (\texttt{feed-syncd}) hoạt động độc lập với chu kỳ định trước. Nhiệm vụ của tiến trình này là tự động kéo (pull) dữ liệu từ các nguồn tình báo bên ngoài, phân tích cú pháp, loại bỏ các mục trùng lặp và đẩy danh sách hợp lệ vào cơ sở dữ liệu Redis. Sự phân tách này giúp luồng xử lý phân giải không bị ảnh hưởng bởi độ trễ của kết nối mạng khi tải dữ liệu từ internet.
+
+\textbf{Lớp lưu trữ dữ liệu (Redis \& SQLite):}
+Hệ thống sử dụng chiến lược lưu trữ kép để tối ưu hiệu năng và độ bền của thông tin. Redis hoạt động như một bộ nhớ đệm (cache) tốc độ cao, chứa kết quả phân tích tên miền, tập dữ liệu mối đe dọa dạng Set, và cung cấp kênh giao tiếp Pub/Sub. Ngược lại, SQLite chịu trách nhiệm lưu trữ các dữ liệu mang tính bền vững như danh sách ngoại lệ (whitelist), thông số chấm điểm, cấu hình quản trị, và bộ đệm dài hạn cho các tra cứu thông tin tên miền (WHOIS lookup).

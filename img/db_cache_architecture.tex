@@ -1,0 +1,30 @@
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=2.5cm and 3cm,
+        service/.style={rectangle, draw=blue!60, thick, rounded corners, fill=blue!5, minimum width=3.5cm, minimum height=1cm, align=center},
+        db/.style={cylinder, draw=gray!60, thick, aspect=0.25, shape border rotate=90, minimum width=4cm, minimum height=3cm, align=center},
+        arrow/.style={-{Stealth[length=2.5mm, width=2.5mm]}, thick, draw=black!70},
+        font=\small
+    ]
+
+    \node (redis) [db, draw=red!60, fill=red!10] {\textbf{Redis} (In-memory)\\\vspace{0.2cm}\\\scriptsize \begin{tabular}{l} $\bullet$ Threat Feeds \\ $\bullet$ DNS Cache \\ $\bullet$ Pub/Sub \end{tabular}};
+    \node (sqlite) [db, draw=cyan!60, fill=cyan!10, right=2cm of redis] {\textbf{SQLite} (Disk)\\\vspace{0.2cm}\\\scriptsize \begin{tabular}{l} $\bullet$ Telemetry Log \\ $\bullet$ Overrides \\ $\bullet$ Client Groups \end{tabular}};
+
+    \node (dns) [service, above=2.5cm of redis] {dns-resolver};
+    \node (api) [service, above=2.5cm of sqlite] {core-api};
+    \node (feed) [service, below=2cm of redis] {feed-syncd};
+
+    \draw [arrow, <->] (dns) -- (redis) node[midway, left] {Đọc/Ghi ($O(1)$)};
+    \draw [arrow, <->] (api) -- (sqlite) node[midway, right] {CRUD Dữ liệu};
+    
+    % Diagonal arrows
+    \draw [arrow] (dns.south east) -- (sqlite.north west) node[midway, sloped, above] {Ghi Batch Log};
+    \draw [arrow, dashed, <->, rounded corners] (api.east) -- ++(1.5,0) |- ([yshift=-1cm]sqlite.south) node[pos=0.75, below] {Sự kiện (Pub/Sub)} -| (redis.south east);
+    
+    \draw [arrow] (feed) -- (redis) node[midway, left] {Ghi Feed định kỳ};
+
+    \end{tikzpicture}
+    \caption{Sơ đồ tương tác Cơ sở dữ liệu và Cache}
+    \label{fig:db_cache_arch}
+\end{figure}

@@ -1,0 +1,45 @@
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1cm and 3cm,
+        process/.style={rectangle, draw=blue!50, thick, rounded corners, fill=blue!5, minimum width=3.5cm, minimum height=1cm, align=center},
+        decision/.style={diamond, draw=orange!50, thick, fill=orange!5, minimum width=3.2cm, minimum height=1.2cm, align=center, aspect=2},
+        safe/.style={rectangle, draw=green!60, thick, rounded corners, fill=green!10, minimum width=3.2cm, minimum height=1cm, align=center},
+        malicious/.style={rectangle, draw=red!60, thick, rounded corners, fill=red!10, minimum width=3.2cm, minimum height=1cm, align=center},
+        ai/.style={rectangle, draw=purple!50, thick, rounded corners, fill=purple!5, dashed, minimum width=3.5cm, minimum height=1cm, align=center},
+        arrow/.style={-{Stealth[length=2.5mm, width=2.5mm]}, thick, draw=black!70},
+        font=\small
+    ]
+
+    % Central Column
+    \node (input) [process] {Tên miền truy vấn};
+    \node (whitelist) [decision, below=0.8cm of input] {Ngoại lệ\\(Whitelist)?};
+    \node (threat_feed) [decision, below=0.8cm of whitelist] {Khớp Feed\\Đe dọa?};
+    \node (lexical) [process, below=0.8cm of threat_feed] {Chấm điểm ngữ vựng\\(Lexical Scoring)};
+    \node (score_check) [decision, below=0.8cm of lexical] {Đánh giá\\điểm số?};
+    \node (ai_refinement) [ai, below=0.8cm of score_check] {AI Refinement\\\& Enrichment};
+
+    % Left & Right Columns
+    % Place safe_verdict aligned horizontally with score_check
+    \node (safe_verdict) [safe, left=2.2cm of score_check] {SAFE\\(Chuyển tiếp)};
+    \node (malicious_verdict) [malicious, right=2.2cm of score_check] {MALICIOUS\\(DNS Sinkhole)};
+
+    % Arrows - Vertical
+    \draw [arrow] (input) -- (whitelist);
+    \draw [arrow] (whitelist) -- (threat_feed) node[midway, right] {Không};
+    \draw [arrow] (threat_feed) -- (lexical) node[midway, right] {Không};
+    \draw [arrow] (lexical) -- (score_check);
+    \draw [arrow] (score_check) -- (ai_refinement) node[midway, right] {Nghi ngờ (40-69)};
+
+    % Lateral Arrows
+    \draw [arrow] (whitelist) -| (safe_verdict) node[pos=0.25, above] {Có};
+    \draw [arrow] (threat_feed) -| (malicious_verdict) node[pos=0.25, above] {Có};
+    \draw [arrow] (score_check) -- (safe_verdict) node[midway, above] {Thấp (<40)};
+    \draw [arrow] (score_check) -- (malicious_verdict) node[midway, above] {Cao ($\ge$70)};
+    \draw [arrow] (ai_refinement) -| (safe_verdict) node[pos=0.25, below] {Xác định an toàn};
+    \draw [arrow] (ai_refinement) -| (malicious_verdict) node[pos=0.25, below] {Xác định rủi ro};
+
+    \end{tikzpicture}
+    \caption{Sơ đồ luồng phân tích rủi ro tên miền (Risk Analysis Pipeline)}
+    \label{fig:risk_analysis_flow}
+\end{figure}

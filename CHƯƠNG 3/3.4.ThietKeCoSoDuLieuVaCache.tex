@@ -1,2 +1,25 @@
-﻿\section{Thiết kế cơ sở dữ liệu và cache}
+\section{Thiết kế Cơ sở dữ liệu và Cache}
 
+Hệ thống Safe Zone áp dụng kiến trúc lưu trữ phân lớp (Tiered Storage), kết hợp sức mạnh giữa cơ sở dữ liệu trên bộ nhớ (In-memory) và cơ sở dữ liệu cục bộ nhúng trên đĩa (Disk-based). Thiết kế này hướng tới việc tối đa hóa tốc độ truy xuất cho luồng phân giải DNS siêu tốc (đạt mili-giây), đồng thời vẫn đảm bảo tính bền vững (persistence) cho các dữ liệu cấu hình quản trị và nhật ký.
+
+\input{img/db_cache_architecture.tex}
+
+Kiến trúc dữ liệu được chia làm hai trụ cột chính, phục vụ các nghiệp vụ hoàn toàn tách biệt trong hệ thống:
+
+\textbf{1. Cơ sở dữ liệu bộ nhớ đệm (Redis - Hot Data):}
+Đóng vai trò là trái tim của hệ thống phân tích tốc độ cao, Redis đảm nhận ba chức năng cốt lõi:
+\begin{itemize}
+    \item \textbf{Bộ đệm phân giải (DNS Cache):} Lưu trữ các kết quả phân giải tên miền (bản ghi A, AAAA, CNAME) với thời gian sống (TTL) quy định. Nhờ đó, \texttt{dns-resolver} có thể phản hồi lập tức các truy vấn bị trùng lặp với thời gian tra cứu $O(1)$.
+    \item \textbf{Danh sách đe dọa (Threat Feeds):} Tiến trình \texttt{feed-syncd} định kỳ đồng bộ hàng triệu tên miền độc hại mới nhất từ mạng Internet vào cấu trúc tập hợp (\texttt{SET}) của Redis. Thiết kế này hỗ trợ lệnh \texttt{SISMEMBER} để đối chiếu tên miền chính xác tuyệt đối mà không cần tính toán phức tạp.
+    \item \textbf{Kênh phân phối sự kiện (Pub/Sub):} Là xương sống cho tính năng tải lại nóng (hot-reload). Khi cấu hình thay đổi trên giao diện, \texttt{core-api} phát sự kiện qua Redis, giúp \texttt{dns-resolver} tức thời ghi nhận và áp dụng bộ luật mới (như thêm ngoại lệ) mà không bị ngừng dịch vụ.
+\end{itemize}
+
+\textbf{2. Cơ sở dữ liệu nhúng (SQLite - Persistent Data):}
+Thay vì phụ thuộc vào các máy chủ cơ sở dữ liệu cồng kềnh (PostgreSQL, MySQL), Safe Zone ứng dụng SQLite để đạt tiêu chí "cài đặt không cấu hình" (zero-config) nhưng vẫn đáp ứng lượng lưu trữ đồ sộ. SQLite đảm trách các vai trò:
+\begin{itemize}
+    \item \textbf{Nhật ký đo lường (Telemetry):} Lưu trữ vĩnh viễn (hoặc luân chuyển định kỳ) toàn bộ siêu dữ liệu (metadata) của các lượt phân giải, gồm tên miền, kết quả (SAFE/MALICIOUS), điểm số rủi ro, thông tin máy khách. Bảng \texttt{TelemetryEntry} đóng vai trò là cơ sở để kết xuất các biểu đồ xu hướng theo thời gian thực trên giao diện quản trị.
+    \item \textbf{Quản lý cấu hình (Configurations):} Ghi nhận bền vững các quy tắc ngoại lệ, danh sách chặn, thiết lập nhóm máy khách (Client Groups) và tài khoản.
+    \item \textbf{Dữ liệu tình báo (OSINT Evidence):} Cache lại kết quả từ các nguồn tin tình báo ngoại vi (như WHOIS hoặc chứng chỉ TLS), hạn chế các cuộc gọi API không cần thiết nếu hệ thống phải tái kiểm tra một tên miền bị nghi ngờ trong tương lai gần.
+\end{itemize}
+
+Điểm nhấn kỹ thuật của SQLite trong kiến trúc Safe Zone là việc kích hoạt chế độ \textit{Nhật ký ghi trước} (Write-Ahead Logging - WAL). Cơ chế WAL vô hiệu hóa tình trạng khóa tập tin toàn cục (Database lock), cho phép các tiến trình nền song song thực thi thao tác đọc và ghi với thông lượng hàng nghìn truy vấn trên giây, xóa bỏ hoàn toàn nút thắt cổ chai ở tầng lưu trữ vật lý.

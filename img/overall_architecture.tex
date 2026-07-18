@@ -1,0 +1,52 @@
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.5cm and 2cm,
+        box/.style={rectangle, draw=blue!40, thick, rounded corners, fill=blue!5, minimum width=3cm, minimum height=1.2cm, align=center},
+        db/.style={cylinder, draw=cyan!60, thick, shape border rotate=90, aspect=0.25, fill=cyan!5, minimum width=2.2cm, minimum height=1.5cm, align=center},
+        proxy/.style={rectangle, draw=gray!50, thick, rounded corners, fill=gray!10, minimum width=3.5cm, minimum height=1.2cm, align=center},
+        external/.style={rectangle, draw=gray!60, thick, dashed, fill=white, minimum width=2.5cm, minimum height=1.2cm, align=center},
+        arrow/.style={-{Stealth[length=2.5mm, width=2.5mm]}, thick, draw=black!60},
+        dashed_arrow/.style={-{Stealth[length=2.5mm, width=2.5mm]}, thick, dashed, draw=black!60}
+    ]
+
+    % Nodes
+    \node (client) [external] {Client \\ (DoH/DoT/Web)};
+    
+    \node (caddy) [proxy, below=1cm of client] {Caddy \\ (Reverse Proxy)};
+    
+    \node (dns_resolver) [box, below left=1.2cm and -0.2cm of caddy] {\texttt{dns-resolver} \\ (DoH, DoT)};
+    \node (core_api) [box, below right=1.2cm and -0.2cm of caddy] {\texttt{core-api} \\ (API \& SPA)};
+    
+    \node (redis) [db, below=2cm of dns_resolver] {Redis \\ (Cache/Feed)};
+    \node (sqlite) [db, below=2cm of core_api] {SQLite \\ (Config/Logs)};
+    
+    \node (feed_syncd) [box, left=1.5cm of redis] {\texttt{feed-syncd} \\ (Daemon)};
+    \node (upstream) [external, left=1.5cm of dns_resolver] {Upstream DNS \\ (Cloudflare)};
+
+    % Grouping / Boundaries
+    \begin{pgfonlayer}{background}
+        \node (docker_zone) [fill=gray!5, rounded corners, draw=gray!40, dashed, fit=(caddy) (dns_resolver) (core_api) (redis) (sqlite) (feed_syncd), inner sep=0.5cm, yshift=0.2cm] {};
+        % Adjust label position to avoid overlap
+        \node [above right=0.1cm and 0.1cm, text=gray!80, font=\itshape] at (docker_zone.north west) {Docker Internal Network};
+    \end{pgfonlayer}
+
+    % Connections
+    \draw [arrow] (client) -- (caddy) node[midway, right, font=\footnotesize] {HTTPS/TLS};
+    
+    \draw [arrow] (caddy.south) -- (dns_resolver.north) node[midway, above left, font=\footnotesize, xshift=-0.1cm, yshift=-0.2cm] {Proxy};
+    \draw [arrow] (caddy.south) -- (core_api.north) node[midway, above right, font=\footnotesize, xshift=0.1cm, yshift=-0.2cm] {Proxy};
+    
+    \draw [arrow] (dns_resolver) -- (redis) node[midway, left, font=\footnotesize] {Đọc/Cache};
+    \draw [arrow] (core_api) -- (sqlite) node[midway, right, font=\footnotesize] {Đọc/Ghi};
+    
+    \draw [arrow] (core_api.south west) -- (redis.north east) node[pos=0.2, sloped, above, font=\footnotesize] {Pub/Sub};
+    \draw [arrow] (dns_resolver.south east) -- (sqlite.north west) node[pos=0.2, sloped, above, font=\footnotesize] {Đọc};
+    
+    \draw [arrow] (feed_syncd) -- (redis) node[midway, above, font=\footnotesize] {Sync};
+    \draw [dashed_arrow] (dns_resolver) -- (upstream) node[midway, above, font=\footnotesize] {Forward};
+
+    \end{tikzpicture}
+    \caption{Sơ đồ kiến trúc triển khai tổng thể của hệ thống Safe Zone}
+    \label{fig:kien_truc_tong_the}
+\end{figure}
