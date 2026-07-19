@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    process/.style={draw=blue!40, fill=blue!5, rounded corners=6pt, inner sep=10pt, align=center, minimum height=1.2cm, minimum width=2.8cm},
+    decision/.style={draw=cyan!40, fill=cyan!5, diamond, aspect=1.8, inner sep=4pt, align=center},
+    storage/.style={cylinder, draw=gray!50, shape border rotate=90, aspect=0.25, fill=gray!10, minimum width=2.2cm, minimum height=1.5cm, align=center},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt},
+    lbl/.style={text=gray!80!black, font=\footnotesize, align=center}
+]
+
+% Nodes Row 1
+\node[process] (snapshot) at (0, 0) {Trích xuất Dữ liệu\\(Redis, SQLite, Configs)};
+\node[process] (checksum) at (4.5, 0) {Kiểm tra Toàn vẹn\\(SHA256 Manifest)};
+\node[process] (encrypt) at (9, 0) {Mã hóa Bảo mật\\(GPG AES256)};
+
+% Nodes Row 2
+\node[storage] (local_disk) at (0, -2.5) {Máy chủ cục bộ\\(\texttt{backups/})};
+\node[process] (prune) at (4.5, -2.5) {Dọn dẹp tự động\\(Retention Pruning)};
+\node[process] (sync) at (9, -2.5) {Đồng bộ Đám mây\\(Rclone Offsite)};
+
+% Nodes Row 3
+\node[storage] (cloud) at (9, -5) {Lưu trữ Đám mây\\(Google Drive/S3)};
+
+% Arrows
+\draw[arrow] (snapshot) -- (checksum);
+\draw[arrow] (checksum) -- (encrypt);
+\draw[arrow] (encrypt) -- (sync);
+
+\draw[arrow] (snapshot) -- (local_disk) node[midway, left, lbl] {Lưu trữ};
+\draw[arrow] (sync) -- (cloud) node[midway, right, lbl] {Upload};
+
+\draw[arrow] (local_disk) -- (prune) node[midway, above, lbl] {ops:prune};
+
+% The line from encrypt to local_disk
+\draw[arrow, rounded corners=4pt] ([xshift=-10pt]encrypt.south) |- (1.0, -1.25) node[pos=0.7, above, lbl] {Bản sao mã hóa} -- (local_disk.40);
+
+\end{tikzpicture}

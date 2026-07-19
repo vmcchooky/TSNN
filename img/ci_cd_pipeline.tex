@@ -1,0 +1,39 @@
+\begin{tikzpicture}[
+    font=\sffamily\small,
+    >={Stealth[round, scale=1.1]},
+    actor/.style={draw=gray!40, fill=gray!10, rounded corners=6pt, inner sep=10pt, align=center, minimum height=1.2cm},
+    process/.style={draw=blue!40, fill=blue!5, rounded corners=6pt, inner sep=8pt, align=center, minimum height=1.2cm, minimum width=2.5cm},
+    action/.style={draw=cyan!40, fill=cyan!5, rounded corners=4pt, inner sep=6pt, align=center, minimum height=1cm, minimum width=2.5cm},
+    arrow/.style={->, thick, gray!80, rounded corners=4pt},
+    lbl/.style={text=gray!80!black, font=\footnotesize, align=center}
+]
+
+% Nodes
+\node[actor] (dev) at (0, 2.5) {Lập trình viên\\(Push / PR)};
+
+\node[process] (github) at (0, 0) {GitHub Actions\\(ci.yml)};
+
+\node[action] (lint) at (5, 2.5) {Kiểm tra cú pháp\\(Linter \& Typecheck)};
+\node[action] (test) at (5, 0.8) {Kiểm thử đơn vị\\(Go Tests \& Benchmark)};
+\node[action] (e2e) at (5, -0.8) {Kiểm thử giao diện\\(Playwright E2E)};
+\node[action] (sec) at (5, -2.5) {Quét bảo mật\\(gosec, govulncheck)};
+
+\node[process] (docker) at (10, 0) {Đóng gói Image\\(Docker Build)};
+
+% Bounding box for Mise tasks
+\node[draw=gray!50, dashed, rounded corners=8pt, fit=(lint) (test) (e2e) (sec), inner sep=15pt, label={[font=\sffamily\bfseries\small, text=gray!70!black]above:Mise Task Runner}] (mise) {};
+
+% Arrows
+\draw[arrow] (dev.south) -- (github.north) node[midway, right, lbl] {Kích hoạt};
+
+\draw[arrow] (github.east) -- (lint.west);
+\draw[arrow] (github.east) -- (test.west);
+\draw[arrow] (github.east) -- (e2e.west);
+\draw[arrow] (github.east) -- (sec.west);
+
+\draw[arrow] (lint.east) -- (docker.west);
+\draw[arrow] (test.east) -- (docker.west);
+\draw[arrow] (e2e.east) -- (docker.west);
+\draw[arrow] (sec.east) -- (docker.west);
+
+\end{tikzpicture}

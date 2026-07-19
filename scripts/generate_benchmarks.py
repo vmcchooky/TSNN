@@ -8,7 +8,7 @@ plt.style.use('bmh') # Use a built-in nice style instead of seaborn
 # 1. Latency Bar Chart
 def plot_latency():
     plt.figure(figsize=(8, 5))
-    scenarios = ['Redis Cache Hit', 'SQLite Local Hit', 'AI Inference (Miss)']
+    scenarios = ['Redis Cache Hit', 'SQLite Local Hit', 'Phân tích ngữ vựng (Miss)']
     latency = [1.2, 8.5, 110.5]
     colors = ['#2ecc71', '#3498db', '#e74c3c']
     
@@ -33,7 +33,7 @@ def plot_throughput():
     qps_ai = [90, 420, 800, 1100, 1250, 1300]
     
     plt.plot(concurrency, qps_cache, marker='o', linewidth=2.5, color='#2ecc71', label='Cache Hit (Redis)')
-    plt.plot(concurrency, qps_ai, marker='s', linewidth=2.5, color='#e74c3c', label='AI Inference (Miss)')
+    plt.plot(concurrency, qps_ai, marker='s', linewidth=2.5, color='#e74c3c', label='Phân tích ngữ vựng (Miss)')
     
     plt.title('Khả năng chịu tải của hệ thống (Throughput)', fontsize=14, pad=15)
     plt.xlabel('Số lượng kết nối đồng thời (Concurrency)', fontsize=12)
@@ -55,9 +55,9 @@ def plot_inference():
     plt.boxplot(data, patch_artist=True, boxprops=dict(facecolor='#9b59b6', color='#8e44ad'),
                 medianprops=dict(color='white', linewidth=2), vert=False)
     
-    plt.title('Phân phối thời gian phân tích ngữ vựng và suy luận AI', fontsize=14, pad=15)
+    plt.title('Phân phối thời gian phân tích ngữ vựng cục bộ', fontsize=14, pad=15)
     plt.xlabel('Thời gian phản hồi (ms)', fontsize=12)
-    plt.yticks([1], ['Mô hình AI'])
+    plt.yticks([1], ['Lexical Analyzer'])
     
     plt.tight_layout()
     plt.savefig('../img/benchmark_inference.png', dpi=300)

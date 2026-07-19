@@ -1,2 +1,34 @@
-﻿\section{Chiến lược kiểm thử tự động}
+\section{Chiến lược kiểm thử tự động}
 
+Hệ thống Safe Zone áp dụng chiến lược kiểm thử đa tầng để duy trì độ tin cậy và hiệu năng trong quá trình hoạt động. Quy trình kiểm thử được tự động hóa từ mức phân tích mã nguồn (linter), kiểm thử đơn vị (unit test), kiểm thử hiệu năng (benchmark) đến kiểm thử giao diện người dùng (E2E) và tích hợp liên tục (CI).
+
+\subsection{Kiểm thử mã nguồn phía Backend (Go)}
+Các thành phần xử lý phân giải DNS và phân tích rủi ro của Safe Zone được phát triển bằng ngôn ngữ Go. Quy trình kiểm thử đối với nền tảng này bao gồm:
+\begin{itemize}
+    \item \textbf{Kiểm thử đơn vị (Unit testing)}: Tập trung vào các mô-đun cốt lõi như bộ chấm điểm rủi ro tên miền, cấu trúc cây tiền tố (domain trie) và bộ lọc Bloom. Phương pháp này giúp xác minh tính đúng đắn của từng hàm thuật toán một cách độc lập.
+    \item \textbf{Kiểm thử hiệu năng (Benchmark testing)}: Các thuật toán tra cứu dữ liệu (như tìm kiếm trên Bloom filter, phân tích từ khóa) được đánh giá hiệu suất qua các kịch bản kiểm thử tĩnh. Mục đích của việc này là đảm bảo quá trình xử lý truy vấn không bị quá tải khi cơ sở dữ liệu tình báo mối đe dọa (threat intelligence) gia tăng kích thước.
+    \item \textbf{Kiểm tra an toàn tĩnh (Static security scanning)}: Cấu hình tích hợp các công cụ như \texttt{gosec} và \texttt{govulncheck} để rà soát các mẫu mã nguồn kém an toàn hoặc lỗ hổng bảo mật đã biết trước khi biên dịch thành tệp thực thi.
+    \item \textbf{Linter}: Sử dụng \texttt{golangci-lint} để đồng bộ hóa tiêu chuẩn định dạng mã nguồn và phát hiện sớm các lỗi logic lập trình.
+\end{itemize}
+
+\subsection{Kiểm thử giao diện Frontend (UI)}
+Giao diện quản trị của Safe Zone là một Ứng dụng trang đơn nhúng (Embedded SPA) xây dựng trên nền tảng React và Vite. Quá trình kiểm thử UI tập trung vào:
+\begin{itemize}
+    \item \textbf{Kiểm tra kiểu dữ liệu tĩnh}: Ứng dụng TypeScript (\texttt{tsc}) để kiểm soát sự nhất quán về cấu trúc dữ liệu trao đổi giữa giao diện và hệ thống API.
+    \item \textbf{Kiểm thử từ đầu đến cuối (End-to-End testing)}: Áp dụng khung Playwright để tự động hóa các kịch bản thao tác của người quản trị. Việc mô phỏng tương tác trên trình duyệt giúp khẳng định tính liên tục của các luồng nghiệp vụ quan trọng như cấu hình quy tắc và biểu diễn dữ liệu thống kê.
+\end{itemize}
+
+\subsection{Quy trình Tích hợp liên tục (Continuous Integration)}
+Nhằm hạn chế rủi ro lỗi phát sinh, Safe Zone chuẩn hóa luồng Tích hợp liên tục (CI) thông qua nền tảng GitHub Actions.
+
+\begin{figure}[H]
+    \centering
+    \input{img/ci_cd_pipeline.tex}
+    \caption{Luồng thực thi tích hợp liên tục (CI) của Safe Zone}
+    \label{fig:ci_cd_pipeline}
+\end{figure}
+
+\begin{itemize}
+    \item \textbf{Điều phối tác vụ với mise}: Toàn bộ chuỗi tác vụ kiểm thử và đóng gói được định nghĩa trong tập tin \texttt{mise.toml}. Cách tiếp cận này giúp môi trường chạy lệnh tại máy cục bộ (local) của lập trình viên và trên máy chủ CI luôn được đồng bộ.
+    \item \textbf{Luồng kiểm duyệt mã nguồn}: Khi xuất hiện các phiên bản cập nhật thông qua quá trình đẩy mã (push) hay yêu cầu hợp nhất (pull request), luồng kiểm thử \texttt{ci.yml} sẽ tự động kích hoạt. Trình tự thực thi khởi đầu bằng việc xây dựng giao diện, kế đến là các bộ kiểm thử E2E, quét bảo mật mã nguồn Go. Nếu mọi khâu kiểm tra đều hợp lệ, hệ thống mới tiến hành đóng gói Docker image cho các dịch vụ cốt lõi (\texttt{core-api}, \texttt{dns-resolver}, \texttt{feed-sync}).
+\end{itemize}

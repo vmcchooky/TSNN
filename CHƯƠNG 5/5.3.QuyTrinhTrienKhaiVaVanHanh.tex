@@ -1,2 +1,31 @@
-﻿\section{Quy trình triển khai và vận hành}
+\section{Quy trình triển khai và vận hành}
 
+Quy trình triển khai và vận hành của Safe Zone được thiết kế nhằm tối ưu hóa khả năng duy trì dịch vụ, giảm thiểu thao tác thủ công và bảo vệ toàn vẹn dữ liệu. Chiến lược vận hành xoay quanh ba trụ cột chính: Đóng gói linh hoạt, Tự động hóa tác vụ và Cơ chế sao lưu đa lớp.
+
+\subsection{Kiến trúc triển khai dựa trên Container}
+Hệ thống sử dụng Docker và Docker Compose để đóng gói toàn bộ các dịch vụ độc lập, đảm bảo môi trường thực thi đồng nhất từ máy tính cục bộ của lập trình viên đến máy chủ sản xuất (production). Kiến trúc triển khai tổng thể (đã được trình bày tại Hình \ref{fig:kien_truc_tong_the}) phân tách rõ ràng các nhóm mạng:
+\begin{itemize}
+    \item \textbf{Máy chủ biên (Edge Proxy)}: Dịch vụ Caddy đóng vai trò là một proxy ngược, chuyên đảm nhận việc xử lý chứng chỉ SSL/TLS và điều hướng lưu lượng HTTP/HTTPS an toàn từ mạng Internet vào hệ thống.
+    \item \textbf{Mạng nội bộ (Internal Network)}: Các dịch vụ cốt lõi như \texttt{core-api}, \texttt{dns-resolver}, và \texttt{redis} chỉ mở cổng giao tiếp trong mạng nội bộ của Docker. Điều này thu hẹp đáng kể bề mặt tấn công (attack surface) từ bên ngoài.
+\end{itemize}
+Ngoài ra, quy trình triển khai tự động nhúng các thông tin siêu dữ liệu (metadata) như \texttt{git commit}, \texttt{build time}, và số hiệu phiên bản vào từng image để phục vụ việc truy vết khi xảy ra sự cố.
+
+\subsection{Tự động hóa công tác quản trị}
+Việc quản lý một hệ thống nhiều thành phần thường đối mặt với rủi ro sai sót do con người (human errors). Safe Zone giải quyết bài toán này bằng cách bọc toàn bộ các lệnh Docker phức tạp vào lớp tập lệnh shell (\texttt{safe-zone.sh} trên Linux, \texttt{safe-zone.ps1} trên Windows) và điều phối chung qua công cụ \texttt{mise}. Quản trị viên chỉ cần sử dụng các mệnh lệnh chuẩn hóa như \texttt{ops:deploy}, \texttt{ops:status}, hoặc \texttt{ops:logs} để thực hiện các nghiệp vụ hằng ngày.
+
+\subsection{Cơ chế Sao lưu và Phục hồi (Backup \& Recovery)}
+Khả năng phục hồi dữ liệu là yếu tố sống còn của hệ thống mạng. Luồng xử lý sao lưu tự động của Safe Zone (Hình \ref{fig:backup_recovery_flow}) được thực thi qua lệnh \texttt{ops:backup} với các bước chặt chẽ:
+\begin{itemize}
+    \item \textbf{Trích xuất toàn diện}: Hệ thống tiến hành sao lưu nóng (hot backup) cơ sở dữ liệu SQLite, xuất báo cáo khối trạng thái (snapshot) từ Redis, đồng thời thu thập các tệp cấu hình quan trọng như \texttt{.env} và \texttt{Caddyfile}.
+    \item \textbf{Đảm bảo toàn vẹn và Bảo mật}: Dữ liệu sao lưu được đối chiếu bằng hàm băm SHA-256 để chống lỗi hỏng tệp. Sau đó, toàn bộ gói tin được mã hóa bảo mật thông qua công nghệ GPG (AES256) nhằm phòng chống rò rỉ thông tin nhạy cảm.
+    \item \textbf{Lưu trữ phân tán và Dọn dẹp}: Bản sao lưu đã mã hóa được đồng bộ lên nền tảng đám mây thông qua Rclone (Offsite Backup). Kèm theo đó, lệnh \texttt{ops:prune} sẽ tự động kích hoạt để xóa các bản sao lưu quá hạn, tránh lãng phí tài nguyên đĩa cứng cục bộ.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \input{img/backup_recovery_flow.tex}
+    \caption{Luồng xử lý Sao lưu và Phục hồi (Backup \& Recovery) tự động}
+    \label{fig:backup_recovery_flow}
+\end{figure}
+
+Việc phục hồi hệ thống (\texttt{ops:restore}) cũng tuân thủ nguyên tắc an toàn: nền tảng sẽ chủ động ngắt các dịch vụ có nguy cơ ghi đè dữ liệu trước khi khôi phục, bảo đảm tính nhất quán cao nhất.

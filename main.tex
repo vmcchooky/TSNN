@@ -201,7 +201,7 @@
 \end{center}
 \vspace{1cm}
 \begin{center}\Huge
-    \textbf{\MakeUppercase{Tên dự án TSNN}}
+    \textbf{\MakeUppercase{Nghiên cứu và triển khai hệ thống DNS Sinkhole kết hợp phân tích ngữ vựng trong phòng chống tấn công giả mạo}}
 \end{center}
 \vspace{2cm}
 \begin{center}
@@ -238,7 +238,7 @@
 \end{center}
 \vspace{1cm}
 \begin{center}\Huge
-    \textbf{\MakeUppercase{Tên dự án TSNN}}	
+    \textbf{\MakeUppercase{Nghiên cứu và triển khai hệ thống DNS Sinkhole kết hợp phân tích ngữ vựng trong phòng chống tấn công giả mạo}}	
 \end{center}
 \vspace{1cm}
 \begin{center}
@@ -285,7 +285,7 @@ Ngoài ra, trong đồ án còn sử dụng một số nhận xét, đánh giá 
 \textbf{Nếu phát hiện có bất kỳ sự gian lận nào tôi xin hoàn toàn chịu trách nhiệm về nội dung đồ án của mình}. Trường đại học Tôn Đức Thắng không liên quan đến những vi phạm tác quyền, bản quyền do tôi gây ra trong quá trình thực hiện (nếu có).
 \begin{center}
     \textit{
-        \hspace*{5cm}TP.Hồ Chí Minh, ngày 27 tháng 6 năm 2026 \\
+        \hspace*{5cm}TP.Hồ Chí Minh, ngày 10 tháng 7 năm 2026 \\
     	\hspace*{5cm}Tác giả\\
     	\hspace*{5cm}(ký và ghi rõ họ tên)\\
     	\vspace*{0.2cm}
@@ -297,21 +297,21 @@ Ngoài ra, trong đồ án còn sử dụng một số nhận xét, đánh giá 
 \newpage
 
 \begin{center}\fontsize{16pt}{18pt}
-    \textbf{TÊN DỰ ÁN TSNN\\}
+    \textbf{Nghiên cứu và triển khai hệ thống DNS Sinkhole kết hợp phân tích ngữ vựng trong phòng chống tấn công giả mạo\\}
     \textbf{TÓM TẮT}
 \end{center}
 
-Nội dung tóm tắt dự án...
+Sự gia tăng của các chiến dịch tấn công giả mạo (phishing) đặt ra yêu cầu cấp thiết về các cơ chế phòng thủ mạng ở cấp độ cơ sở hạ tầng. Báo cáo này trình bày quá trình nghiên cứu và triển khai Safe Zone --- một hệ thống hố DNS (DNS sinkhole) chủ động ngăn chặn truy cập đến các tên miền độc hại thông qua việc kết hợp dữ liệu tình báo mối đe dọa (threat intelligence) và kỹ thuật chấm điểm ngữ vựng (lexical scoring). Hệ thống áp dụng nguyên tắc thiết kế mở khi lỗi (fail-open) cùng kiến trúc lưu trữ phân lớp bằng bộ lọc Bloom (Bloom filter) và bộ nhớ đệm Redis, giúp tối ưu hóa độ trễ phân giải DNS và duy trì tính khả dụng ngay cả khi các dịch vụ phân tích AI phụ trợ gặp sự cố. Các kết quả đánh giá cho thấy nền tảng có khả năng phát hiện hiệu quả các thuật toán sinh tên miền tự động (DGA) và hành vi giả mạo thương hiệu (brand spoofing) dựa trên Shannon Entropy và khoảng cách chuỗi. Bên cạnh đó, hệ thống cũng được chuẩn hóa quy trình vận hành với luồng kiểm thử tự động (CI) và cơ chế sao lưu mã hóa nguyên vẹn.
 
 \clearpage
 
 \begin{center}\fontsize{16pt}{18pt}
-    \textbf{PROJECT TITLE (ENGLISH)\\}
+    \textbf{Research and Implementation of a DNS Sinkhole System integrating Lexical Analysis for Phishing Prevention\\}
     \textbf{ABSTRACT}
 \end{center}
 
 \begin{english}
-Abstract content...
+The proliferation of phishing campaigns necessitates robust network defense mechanisms at the infrastructure level. This report details the research and implementation of Safe Zone, a DNS sinkhole system designed to proactively block access to malicious domains by integrating threat intelligence feeds with lexical scoring techniques. The system is built upon a fail-open design principle and a tiered storage architecture utilizing Bloom filters and Redis caching. This approach minimizes DNS resolution latency and ensures high availability, even when auxiliary AI analysis services experience downtime. Evaluation results demonstrate the platform's efficacy in detecting Domain Generation Algorithms (DGA) and brand spoofing behaviors using Shannon Entropy and string distance metrics. Furthermore, the system incorporates standardized operational procedures, including automated Continuous Integration (CI) pipelines and encrypted backup mechanisms.
 \end{english}
 
 
@@ -365,17 +365,32 @@ Abstract content...
 \input{CHƯƠNG 5/5.3.QuyTrinhTrienKhaiVaVanHanh}
 \newpage
 
-\chapter*{KẾT LUẬN}
+\chapter*{KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN}
 \addcontentsline{toc}{chapter}{KẾT LUẬN}
 
-Nội dung kết luận...
+\section*{Kết quả đạt được}
+Tấn công giả mạo (phishing) tiếp tục là một thách thức đối với an toàn thông tin, đòi hỏi các cơ chế phòng thủ linh hoạt và đa lớp. Dự án Safe Zone đã tiếp cận bài toán này từ tầng phân giải tên miền, áp dụng kỹ thuật hố DNS (DNS sinkhole) để xây dựng một hệ thống bảo vệ mạng chủ động. Giải pháp kết hợp giữa đối chiếu nguồn dữ liệu tình báo mối đe dọa (threat intelligence) và kỹ thuật chấm điểm ngữ vựng (lexical scoring) để nâng cao khả năng nhận diện.
 
+Hệ thống được thiết kế theo kiến trúc lưu trữ phân lớp nhằm cân bằng giữa chi phí tính toán và độ trễ phản hồi. Việc áp dụng các cấu trúc dữ liệu như bộ lọc Bloom (Bloom filter) kết hợp cùng bộ nhớ đệm Redis giúp quá trình tra cứu tĩnh đạt tốc độ cao. Song song đó, các thuật toán phân tích chuyên sâu --- tiêu biểu như tính toán Shannon Entropy để nhận diện thuật toán sinh tên miền tự động (DGA) hoặc kiểm tra khoảng cách chuỗi để phát hiện hành vi giả mạo thương hiệu (brand spoofing) --- cho phép nền tảng phát hiện các chiến dịch tấn công chưa từng xuất hiện trong cơ sở dữ liệu (zero-day).
+
+Điểm đáng chú ý của kiến trúc nằm ở nguyên tắc thiết kế mở khi lỗi (fail-open). Quá trình tích hợp các mô hình ngôn ngữ lớn (LLM) để tinh chỉnh kết quả phân tích được tách biệt khỏi luồng xử lý phân giải lõi. Thiết kế này đảm bảo máy chủ DNS vẫn duy trì trạng thái hoạt động liên tục ngay cả khi dịch vụ AI phản hồi chậm hoặc gặp sự cố, hạn chế tối đa nguy cơ gián đoạn kết nối mạng của người dùng.
+
+Về mặt kỹ nghệ phần mềm, dự án đã chuẩn hóa quy trình triển khai và vận hành. Việc sử dụng ứng dụng trang đơn nhúng (embedded SPA) cho giao diện quản trị, kết hợp với luồng kiểm thử tự động (CI) qua GitHub Actions, giúp duy trì tính ổn định của mã nguồn. Các quy trình sao lưu tự động tích hợp băm SHA-256 và mã hóa AES256 cũng góp phần giảm thiểu rủi ro mất mát và rò rỉ dữ liệu.
+
+\section*{Hướng phát triển trong tương lai}
+Mặc dù hệ thống đã đáp ứng các yêu cầu về hiệu năng và chức năng cốt lõi, dự án vẫn mở ra các hướng nghiên cứu tiếp theo nhằm cải thiện chất lượng dịch vụ:
+
+\begin{itemize}
+    \item \textbf{Tối ưu hóa các mô hình AI cục bộ}: Nghiên cứu việc tinh chỉnh (fine-tuning) các mô hình ngôn ngữ nhỏ (SLM) chuyên biệt cho dữ liệu an toàn thông tin. Việc này nhằm giảm thiểu độ trễ suy luận so với sử dụng các API ngoại vi, đồng thời tăng cường tính riêng tư dữ liệu.
+    \item \textbf{Mở rộng khả năng phân tích hành vi}: Khai thác siêu dữ liệu (metadata) từ các truy vấn DNS theo chuỗi thời gian (time-series) để nhận diện các mẫu giao tiếp đặc trưng của mã độc (C2 beaconing), tiến xa hơn việc chỉ phân tích cấu trúc chuỗi ký tự tên miền tĩnh hiện tại.
+\end{itemize}
 \clearpage
 
 
 \addcontentsline{toc}{chapter}{\textbf{TÀI LIỆU THAM KHẢO}}
 \renewcommand{\bibname}{\centering \textbf{\fontsize{16pt}{18pt}\selectfont TÀI LIỆU THAM KHẢO}}
 
+\nocite{*}
 \printbibliography
 
 \end{document}
