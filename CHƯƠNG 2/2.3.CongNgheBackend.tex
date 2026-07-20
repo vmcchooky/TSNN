@@ -8,7 +8,7 @@ Ngôn ngữ Go (Golang) được sử dụng làm nền tảng cốt lõi để 
 \subsection{Lưu trữ dữ liệu: SQLite và Redis}
 Hệ thống áp dụng mô hình lưu trữ hỗn hợp nhằm khai thác ưu điểm của từng động cơ cơ sở dữ liệu đối với các loại dữ liệu đặc thù. 
 
-SQLite được sử dụng để lưu trữ các thông tin mang tính bền vững như cấu hình hệ thống, bộ nhớ đệm WHOIS, danh sách miền tin cậy (whitelist), và các bản ghi đo lường hoạt động (telemetry). Dưới dạng một cơ sở dữ liệu nhúng (embedded database) không yêu cầu máy chủ nền tảng (serverless), SQLite loại bỏ hoàn toàn độ trễ giao tiếp mạng (network latency) giữa ứng dụng và cơ sở dữ liệu, đảm bảo tốc độ đọc ghi cục bộ đạt mức tối đa.
+SQLite được sử dụng để lưu trữ các thông tin mang tính bền vững như cấu hình hệ thống, bộ nhớ đệm WHOIS, danh sách miền tin cậy (whitel\-ist), và các bản ghi đo lường hoạt động (telemetry). Dưới dạng một cơ sở dữ liệu nhúng (embedded database) không yêu cầu máy chủ nền tảng (serverless), SQLite loại bỏ hoàn toàn độ trễ giao tiếp mạng (network latency) giữa ứng dụng và cơ sở dữ liệu, đảm bảo tốc độ đọc ghi cục bộ đạt mức tối đa.
 
 Bổ trợ cho SQLite là hệ thống Redis, được tích hợp nhằm vận hành bộ nhớ đệm tốc độ cao (in-memory cache) trên cơ sở bộ nhớ RAM. Redis đóng vai trò thiết yếu trong việc quản lý và tra cứu tập dữ liệu tình báo mối đe dọa (threat feed), nơi yêu cầu các thao tác kiểm tra phần tử (như lệnh \texttt{SISMEMBER}) phải được thực thi với độ phức tạp thời gian O(1). Cơ chế này đảm bảo mọi truy vấn tên miền đều được đối chiếu với cơ sở dữ liệu độc hại gần như tức thời trước khi kích hoạt quy trình phân tích ngữ vựng.
 

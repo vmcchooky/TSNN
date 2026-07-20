@@ -1,10 +1,9 @@
 \section{Đánh giá hiệu năng và độ trễ}
-
-Hiệu năng xử lý và độ trễ phản hồi là hai tiêu chí trọng tâm đối với bất kỳ hệ thống phân giải tên miền (DNS Resolver) nào, đặc biệt khi hệ thống phải gánh vác thêm luồng xử lý chấm điểm ngữ vựng (lexical scoring) và đối chiếu tình báo mối đe dọa (threat intelligence). Quá trình đánh giá hiệu năng của dự án Safe Zone được tiến hành trong môi trường độc lập, sử dụng công cụ giả lập tải nhằm đảm bảo tính khách quan của số liệu.
+Hiệu năng và độ trễ là tiêu chí trọng tâm của hệ thống phân giải tên miền (DNS Resolver), nhất là khi kết hợp chấm điểm ngữ vựng và đối chiếu tình báo mối đe dọa. Việc đánh giá Safe Zone được thực hiện bằng công cụ giả lập tải trong môi trường độc lập để đảm bảo khách quan.
 
 \subsection{Đánh giá độ trễ phân giải (Latency)}
 
-Mục tiêu của bài thử nghiệm là đo lường thời gian đáp ứng (Response Time) của hệ thống trước các luồng truy vấn. Quá trình xử lý của Safe Zone được chia làm 3 trường hợp chính: Truy vấn đã tồn tại trong bộ nhớ đệm RAM (Redis Cache Hit), truy vấn tồn tại trong cơ sở dữ liệu cục bộ (SQLite Local Hit), và truy vấn mới yêu cầu phân tích ngữ vựng cục bộ (Cache Miss).
+Thử nghiệm đo lường thời gian đáp ứng của hệ thống qua 3 kịch bản: truy vấn từ bộ nhớ đệm RAM (Redis Cache Hit), từ cơ sở dữ liệu cục bộ (SQLite Local Hit), và truy vấn mới cần phân tích ngữ vựng cục bộ (Cache Miss).
 
 \begin{figure}[H]
     \centering

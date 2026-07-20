@@ -1,10 +1,10 @@
 \section{Kiến trúc tổng thể}
 
-Kiến trúc của hệ thống Safe Zone được xây dựng theo mô hình vi dịch vụ (microservices) kết hợp với các thành phần dữ liệu phân tán. Cách tiếp cận này giúp tách biệt rành mạch giữa luồng xử lý phân giải tên miền tốc độ cao và luồng quản trị hệ thống, đồng thời đảm bảo khả năng duy trì dịch vụ theo nguyên tắc mở khi lỗi (fail-open).
+Kiến trúc của hệ thống Safe Zone được định hình theo mô hình vi dịch vụ (microservices) kết hợp cơ sở dữ liệu phân tán, hướng tới mục tiêu tối ưu hiệu năng và độ tin cậy.
 
 \input{img/overall_architecture.tex}
 
-Hệ thống được tổ chức thành các thành phần chính hoạt động trong một mạng nội bộ (internal network) thông qua môi trường container hóa (Docker). Các thành phần này tương tác với nhau để hoàn thiện vòng đời của một truy vấn DNS.
+Toàn bộ hệ thống được triển khai thành các thành phần độc lập trong một mạng nội bộ (internal network) thông qua môi trường container hóa (Docker). Việc phân rã chức năng này giúp tách biệt rành mạch giữa luồng phân giải tên miền yêu cầu tốc độ cao và luồng quản trị hệ thống. Hơn nữa, sự cô lập giữa các container đóng vai trò cốt lõi trong việc duy trì nguyên tắc mở khi lỗi (fail-open), đảm bảo quá trình xử lý vòng đời của một truy vấn DNS không bị gián đoạn khi một phần mềm phụ trợ gặp sự cố.
 
 \textbf{Lớp tiếp nhận và định tuyến (Reverse Proxy):}
 Caddy đóng vai trò là cửa ngõ duy nhất giao tiếp với mạng internet (Internet-facing). Nhiệm vụ chính của thành phần này là quản lý chứng chỉ TLS tự động và phân luồng các kết nối HTTPS. Mọi truy vấn từ thiết bị người dùng (Client) hoặc yêu cầu truy cập giao diện quản trị đều được Caddy tiếp nhận và chuyển tiếp (proxy) đến đúng dịch vụ phụ trách bên trong.

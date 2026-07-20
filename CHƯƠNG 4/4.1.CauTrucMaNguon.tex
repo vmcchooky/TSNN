@@ -1,6 +1,6 @@
 \section{Cấu trúc mã nguồn}
 
-Dự án Safe Zone được tổ chức thành các không gian làm việc (workspace) biệt lập, tuân thủ chặt chẽ mô hình phân lớp của ngôn ngữ Go. Cách phân bổ này nhằm chia tách rõ ràng giữa mã nguồn khởi chạy tiến trình (entrypoints), logic nghiệp vụ lõi (core business logic) và giao diện quản trị (frontend dashboard).
+Dự án Safe Zone được tổ chức thành các không gian làm việc (worksp\-ace) biệt lập, tuân thủ chặt chẽ mô hình phân lớp của ngôn ngữ Go. Cách phân bổ này nhằm chia tách rõ ràng giữa mã nguồn khởi chạy tiến trình (entrypoints), logic nghiệp vụ lõi (core business logic) và giao diện quản trị (frontend dashboard).
 
 \begin{figure}[H]
     \centering
@@ -66,12 +66,12 @@ Kiến trúc đa tiến trình này củng cố nguyên tắc mở khi lỗi (fa
 
 Thư mục \texttt{internal/} đóng gói toàn bộ logic nghiệp vụ cốt lõi, cơ chế bảo vệ của Go ngăn chặn các dự án bên ngoài sử dụng trực tiếp các gói này. Một số thành phần trọng yếu bao gồm:
 \begin{itemize}
-    \item \texttt{analysis} và \texttt{risk}: Chịu trách nhiệm chấm điểm ngữ vựng (lexical scoring) và đánh giá rủi ro tổng thể. Luồng phân tích xác định luận (deterministic) đối chiếu các dấu hiệu đe dọa trước khi quyết định đưa tên miền vào hố DNS (DNS sinkhole).
+    \item \texttt{analysis} và \texttt{risk}: Chịu trách nhiệm chấm điểm ngữ vựng (lexical scori\-ng) và đánh giá rủi ro tổng thể. Luồng phân tích xác định luận (deterministic) đối chiếu các dấu hiệu đe dọa trước khi quyết định đưa tên miền vào hố DNS (DNS sinkhole).
     \item \texttt{ai}: Tích hợp mô hình ngôn ngữ lớn để hỗ trợ tinh chỉnh (refinement) phán định. Cơ chế này được kích hoạt linh hoạt khi tên miền có điểm rủi ro nằm ở ngưỡng nghi ngờ (suspicious).
     \item \texttt{dns}: Cung cấp các tiện ích xử lý bản tin định dạng mạng (wire-format) và giao tiếp theo chuẩn RFC cho các giao thức DNS tiên tiến.
     \item \texttt{cache} và \texttt{store}: Quản lý tương tác với Redis (lưu trữ tập hợp tình báo đe dọa) và SQLite (bộ nhớ đệm cho dữ liệu WHOIS, siêu dữ liệu cấu hình).
 \end{itemize}
-Việc quy tụ logic xử lý chung vào \texttt{internal/} giúp cả \texttt{core-api} và \texttt{dns-resolver} có thể chia sẻ cùng một bộ máy đánh giá rủi ro mà không xảy ra tình trạng phân mảnh hoặc trùng lặp mã nguồn.
+Việc quy tụ logic xử lý chung vào \texttt{internal/} giúp cả \texttt{core-api} và \texttt{dns-re\-solver} có thể chia sẻ cùng một bộ máy đánh giá rủi ro mà không xảy ra tình trạng phân mảnh hoặc trùng lặp mã nguồn.
 
 \textbf{Tầng giao diện và Vận hành (\texttt{ui/}, \texttt{ops/}, \texttt{scripts/})}
 

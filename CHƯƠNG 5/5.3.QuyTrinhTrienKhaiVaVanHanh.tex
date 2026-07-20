@@ -11,7 +11,7 @@ Hệ thống sử dụng Docker và Docker Compose để đóng gói toàn bộ 
 Ngoài ra, quy trình triển khai tự động nhúng các thông tin siêu dữ liệu (metadata) như \texttt{git commit}, \texttt{build time}, và số hiệu phiên bản vào từng image để phục vụ việc truy vết khi xảy ra sự cố.
 
 \subsection{Tự động hóa công tác quản trị}
-Việc quản lý một hệ thống nhiều thành phần thường đối mặt với rủi ro sai sót do con người (human errors). Safe Zone giải quyết bài toán này bằng cách bọc toàn bộ các lệnh Docker phức tạp vào lớp tập lệnh shell (\texttt{safe-zone.sh} trên Linux, \texttt{safe-zone.ps1} trên Windows) và điều phối chung qua công cụ \texttt{mise}. Quản trị viên chỉ cần sử dụng các mệnh lệnh chuẩn hóa như \texttt{ops:deploy}, \texttt{ops:status}, hoặc \texttt{ops:logs} để thực hiện các nghiệp vụ hằng ngày.
+Việc quản lý hệ thống phức tạp thường tiềm ẩn rủi ro sai sót do con người. Safe Zone giải quyết bằng cách bọc các lệnh Docker vào tập lệnh shell (\texttt{safe-zone.sh} trên Linux, \texttt{safe-zone.ps1} trên Windows) và điều phối qua \texttt{mise}. Quản trị viên chỉ cần dùng các lệnh chuẩn hóa như \texttt{ops:deploy}, \texttt{ops:status}, hay \texttt{ops:logs} cho nghiệp vụ hằng ngày.
 
 \subsection{Cơ chế Sao lưu và Phục hồi (Backup \& Recovery)}
 Khả năng phục hồi dữ liệu là yếu tố sống còn của hệ thống mạng. Luồng xử lý sao lưu tự động của Safe Zone (Hình \ref{fig:backup_recovery_flow}) được thực thi qua lệnh \texttt{ops:backup} với các bước chặt chẽ:
